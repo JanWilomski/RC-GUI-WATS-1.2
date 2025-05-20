@@ -119,25 +119,118 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     
-                    <StackPanel Grid.Row="0" Margin="10">
-                        <TextBlock Text="Ustawienia serwera:" FontWeight="Bold"/>
-                        <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
-                            <TextBlock Text="IP:" Width="80" VerticalAlignment="Center"/>
-                            <TextBox x:Name="ServerIpTextBox" Text="172.31.136.7" Width="150"/>
+                    <!-- Panel ustawień połączenia -->
+                    <GroupBox Grid.Row="0" Header="Ustawienia serwera" Margin="5">
+                        <StackPanel Margin="5">
+                            <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                <TextBlock Text="IP:" Width="80" VerticalAlignment="Center"/>
+                                <TextBox x:Name="ServerIpTextBox" Text="172.31.136.7" Width="150"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                <TextBlock Text="Port:" Width="80" VerticalAlignment="Center"/>
+                                <TextBox x:Name="ServerPortTextBox" Text="19083" Width="150"/>
+                            </StackPanel>
+                            <!--Button Content="Test Capital Update" Click="TestCapitalButton_Click" 
+                                    Margin="0,5,0,0" Padding="5,2" HorizontalAlignment="Left"/-->
                         </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
-                            <TextBlock Text="Port:" Width="80" VerticalAlignment="Center"/>
-                            <TextBox x:Name="ServerPortTextBox" Text="19083" Width="150"/>
-                        </StackPanel>
-                    </StackPanel>
-
-                    <Button Content="Test Capital Update" Click="TestCapitalButton_Click" Margin="5,5,0,0" Padding="5,2"/>
+                    </GroupBox>
                     
-                    <GroupBox Grid.Row="1" Header="Log komunikacji (for debugging)" Margin="10">
+                    <!-- Panel limitów -->
+                    <Grid Grid.Row="1" Margin="5">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        
+                        <!-- Przyciski -->
+                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,5">
+                            <Button x:Name="AddLimitButton" Content="Dodaj limit" Margin="0,0,5,0" 
+                                    Padding="5,2" Click="AddLimitButton_Click"/>
+                            <Button x:Name="RefreshLimitsButton" Content="Odśwież limity" Margin="0,0,5,0" 
+                                    Padding="5,2" Click="RefreshLimitsButton_Click"/>
+                        </StackPanel>
+                        
+                        <!-- Tabela limitów -->
+                        <DataGrid Grid.Row="1" x:Name="LimitsDataGrid" AutoGenerateColumns="False" 
+                                CanUserAddRows="False" CanUserDeleteRows="False" 
+                                Margin="0,5,0,0" SelectionMode="Single">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Zakres" Binding="{Binding DisplayName}" Width="150" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Typ" Binding="{Binding Name}" Width="120" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Wartość" Binding="{Binding Value}" Width="*"/>
+                                <DataGridTemplateColumn Width="Auto">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Content="Zastosuj" Click="ApplyLimitButton_Click" 
+                                                        Margin="2" Padding="5,2"/>
+                                                <!--Button Content="Usuń" Click="RemoveLimitButton_Click" 
+                                                        Margin="2" Padding="5,2"/-->
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                    
+                    <!-- Panel szybkiej zmiany limitów -->
+                    <GroupBox Grid.Row="2" Header="Szybka zmiana limitów" Margin="5">
+                        <Grid Margin="5">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <!-- Zakres -->
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Zakres:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                            <ComboBox Grid.Row="0" Grid.Column="1" x:Name="QuickScopeTypeComboBox" Margin="0,5"
+                                    SelectionChanged="QuickScopeTypeComboBox_SelectionChanged">
+                                <ComboBoxItem Content="Wszystkie instrumenty"/>
+                                <ComboBoxItem Content="Grupa instrumentów"/>
+                                <ComboBoxItem Content="Pojedynczy instrument"/>
+                            </ComboBox>
+                            
+                            <!-- Wartość zakresu -->
+                            <TextBlock Grid.Row="0" Grid.Column="2" Text="Wartość:" VerticalAlignment="Center" Margin="5,0"/>
+                            <TextBox Grid.Row="0" Grid.Column="3" x:Name="QuickScopeValueTextBox" Margin="0,5"/>
+                            
+                            <!-- Typ limitu -->
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Typ limitu:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                            <ComboBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" x:Name="QuickLimitTypeComboBox" Margin="0,5">
+                                <ComboBoxItem Content="halt"/>
+                                <ComboBoxItem Content="maxOrderRate"/>
+                                <ComboBoxItem Content="maxTransaction"/>
+                                <ComboBoxItem Content="maxAbsShares"/>
+                                <ComboBoxItem Content="maxShortShares"/>
+                            </ComboBox>
+                            
+                            <!-- Wartość limitu -->
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Wartość limitu:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                            <TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" x:Name="QuickLimitValueTextBox" Margin="0,5"/>
+                            
+                            <!-- Przycisk Zastosuj -->
+                            <Button Grid.Row="0" Grid.Column="4" Grid.RowSpan="3" Content="Zastosuj" 
+                                    Margin="5" Padding="10,5" Click="ApplyQuickLimitButton_Click"/>
+                        </Grid>
+                    </GroupBox>
+                    
+                    <!-- Panel logów (dla debugowania) -->
+                    <GroupBox Grid.Row="3" Header="Log komunikacji (for debugging)" Margin="5" Height="150">
                         <TextBox x:Name="RawMessagesTextBox" IsReadOnly="True" TextWrapping="Wrap" 
-                                 VerticalScrollBarVisibility="Auto" FontFamily="Consolas" FontSize="11"/>
+                                VerticalScrollBarVisibility="Auto" FontFamily="Consolas" FontSize="11"/>
                     </GroupBox>
                 </Grid>
             </TabItem>

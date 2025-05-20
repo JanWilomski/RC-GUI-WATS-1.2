@@ -7,6 +7,9 @@ using RC_GUI_WATS.Services;
 using System.Text;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Windows.Controls;
 
 namespace RC_GUI_WATS
 {
@@ -16,9 +19,11 @@ namespace RC_GUI_WATS
         private Capital _currentCapital = new Capital();
         private ObservableCollection<Position> _positions = new ObservableCollection<Position>();
         private Dictionary<string, Position> _positionsByIsin = new Dictionary<string, Position>();
-        //private string _serverIp = "172.31.136.7";
         private string _serverIp = "172.31.136.4";
         private int _serverPort = 19083;
+        
+        // Kolekcja limitów kontroli
+        private ObservableCollection<ControlLimit> _controlLimits = new ObservableCollection<ControlLimit>();
 
         public MainWindow()
         {
@@ -27,9 +32,13 @@ namespace RC_GUI_WATS
             _rcClient = new RcTcpClient();
             _rcClient.MessageReceived += OnMessageReceived;
             _rcClient.ConnectionStatusChanged += OnConnectionStatusChanged;
-            // Inicjalizacja DataGrid
+            
+            // Inicjalizacja DataGrid dla pozycji
             _positions = new ObservableCollection<Position>();
             PositionsDataGrid.ItemsSource = _positions;
+            
+            // Inicjalizacja DataGrid dla limitów
+            LimitsDataGrid.ItemsSource = _controlLimits;
             
             // Ustawienie wartości domyślnych
             _currentCapital.MessagesPercentage = 0;
@@ -37,10 +46,17 @@ namespace RC_GUI_WATS
             _currentCapital.CapitalPercentage = 0;
             _currentCapital.CapitalLimit = 0;
             
+
+            QuickScopeTypeComboBox.SelectedIndex = 0;
+            QuickLimitTypeComboBox.SelectedIndex = 0;
+
             UpdateCapitalDisplay();
             
-            // Testowa aktualizacja kapitału aby sprawdzić, czy UI się aktualizuje
+            // Automatyczne połączenie przy starcie aplikacji
             ConnectToServerAsync();
+
+
+
         }
 
         private async void ConnectToServerAsync()
@@ -58,6 +74,9 @@ namespace RC_GUI_WATS
                     
                 // Rewindowanie wiadomości - pobieranie wszystkich historycznych danych
                 await _rcClient.SendRewindAsync(0);
+                
+                // Po połączeniu, pobierz historię kontroli
+                await LoadControlHistoryAsync();
             }
             catch (Exception ex)
             {
@@ -229,7 +248,7 @@ namespace RC_GUI_WATS
             }
         }
 
-        // Metoda do odświeżania DataGrid
+        // Metoda do odświeżania DataGrid pozycji
         private void RefreshPositionsGrid()
         {
             // Wywołaj w wątku UI
@@ -328,6 +347,7 @@ namespace RC_GUI_WATS
                 RawMessagesTextBox.AppendText($"BŁĄD przy przetwarzaniu danych Capital: {ex.Message}\n");
             }
         }
+
         private void ProcessLogMessage(char logType, byte[] payload)
         {
             if (payload.Length < 3)
@@ -349,6 +369,25 @@ namespace RC_GUI_WATS
             }
             
             StatusBarText.Text = $"[{logLevel}] {message}";
+            
+            // Sprawdź, czy wiadomość info zawiera kontrolę
+            // Po żądaniu GetControlsHistory serwer wysyła historię kontroli jako wiadomości 'I'
+            if (logType == 'I' && message.Contains(','))
+            {
+                // Próba interpretacji jako kontroli
+                try
+                {
+                    // Sprawdź, czy to może być kontrola (np. "(ALL),halt,Y")
+                    if (message.Contains("(ALL)") || message.Contains("[") || Regex.IsMatch(message, @"^[A-Z0-9]{12}"))
+                    {
+                        UpdateControlLimit(message);
+                    }
+                }
+                catch 
+                {
+                    // Ignoruj błędy przy próbie interpretacji - to może nie być kontrola
+                }
+            }
             
             // Często limity są przekazywane w wiadomościach logów
             TryExtractLimitsFromLog(message);
@@ -440,6 +479,9 @@ namespace RC_GUI_WATS
             StatusBarText.Text = $"Control: {controlString}";
             RawMessagesTextBox.AppendText($"SET CONTROL: {controlString}\n");
             
+            // Dodaj lub zaktualizuj limit w kolekcji
+            UpdateControlLimit(controlString);
+            
             // Sprawdzenie, czy kontrola zawiera informacje o limitach
             if (controlString.Contains("maxOrderRate"))
             {
@@ -480,8 +522,6 @@ namespace RC_GUI_WATS
                         int limitValue = int.Parse(parts[2]);
                         
                         RawMessagesTextBox.AppendText($"Limit dla instrumentu {isin}: {limitType}={limitValue}\n");
-                        // Aktualizacja limitów dla instrumentu...
-                        // (to wymagałoby dodania pól do klasy Position)
                     }
                 }
                 catch (Exception ex)
@@ -507,6 +547,122 @@ namespace RC_GUI_WATS
             TryExtractLimitsFromLog(message); // Używamy tej samej metody, jeśli format jest podobny
         }
 
+        // Metoda do pobierania historii kontroli
+        private async Task LoadControlHistoryAsync()
+        {
+            if (!_rcClient.IsConnected)
+                return;
+                
+            StatusBarText.Text = "Pobieranie historii kontroli...";
+            
+            // Wyczyść istniejące dane
+            _controlLimits.Clear();
+            
+            // Wyślij żądanie historii kontroli
+            await _rcClient.SendGetControlsHistoryAsync();
+            
+            // Aktualizacja zostanie obsłużona przez obsługę wiadomości typu 'I'/'S'
+        }
+
+        // Metoda do dodawania/aktualizacji limitu
+        private void UpdateControlLimit(string controlString)
+        {
+            var limit = ControlLimit.FromControlString(controlString);
+            if (limit == null)
+                return;
+                
+            // Sprawdź, czy taki limit już istnieje
+            var existingLimit = _controlLimits.FirstOrDefault(l => 
+                l.Scope == limit.Scope && l.Name == limit.Name);
+                
+            if (existingLimit != null)
+            {
+                // Aktualizuj istniejący limit
+                existingLimit.Value = limit.Value;
+                
+                // Odśwież widok
+                Dispatcher.Invoke(() => {
+                    if (LimitsDataGrid != null)
+                        LimitsDataGrid.Items.Refresh();
+                });
+            }
+            else
+            {
+                // Dodaj nowy limit na początku kolekcji, aby najnowsze były na górze
+                Dispatcher.Invoke(() => {
+                    _controlLimits.Insert(0, limit); // Dodaj na początek zamiast _controlLimits.Add(limit);
+                });
+            }
+            
+            RawMessagesTextBox.AppendText($"Zaktualizowano limit: {limit.Scope}, {limit.Name}, {limit.Value}\n");
+        }
+
+        // Obsługa przycisku dodawania limitu
+        private void AddLimitButton_Click(object sender, RoutedEventArgs e)
+        {
+            var addLimitWindow = new AddLimitWindow();
+            if (addLimitWindow.ShowDialog() == true)
+            {
+                var newLimit = addLimitWindow.ControlLimit;
+                if (newLimit != null)
+                {
+                    // Dodaj do kolekcji
+                    _controlLimits.Add(newLimit);
+                    
+                    // Wyślij do serwera
+                    SendControlLimit(newLimit);
+                }
+            }
+        }
+
+        // Obsługa przycisku odświeżania limitów
+        private async void RefreshLimitsButton_Click(object sender, RoutedEventArgs e)
+        {
+            await LoadControlHistoryAsync();
+        }
+
+        // Obsługa przycisku stosowania limitu
+        private void ApplyLimitButton_Click(object sender, RoutedEventArgs e)
+        {
+            var button = sender as Button;
+            if (button != null && button.DataContext is ControlLimit limit)
+            {
+                SendControlLimit(limit);
+            }
+        }
+
+        // Obsługa przycisku usuwania limitu
+        private void RemoveLimitButton_Click(object sender, RoutedEventArgs e)
+        {
+            var button = sender as Button;
+            if (button != null && button.DataContext is ControlLimit limit)
+            {
+                _controlLimits.Remove(limit);
+            }
+        }
+
+        // Metoda do wysyłania limitu do serwera
+        private async void SendControlLimit(ControlLimit limit)
+        {
+            if (_rcClient.IsConnected)
+            {
+                try
+                {
+                    string controlString = limit.ToControlString();
+                    await _rcClient.SendSetControlAsync(controlString);
+                    StatusBarText.Text = $"Wysłano limit: {controlString}";
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Błąd podczas wysyłania limitu: {ex.Message}", "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            else
+            {
+                MessageBox.Show("Nie jesteś połączony z serwerem!", "Błąd", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
         // Pomocnicza metoda do testowania aktualizacji kapitału
         private void TestCapitalUpdate()
         {
@@ -527,7 +683,7 @@ namespace RC_GUI_WATS
             }
         }
 
-        // Obsługa przycisku testowego (dodaj ten przycisk do UI)
+        // Obsługa przycisku testowego 
         private void TestCapitalButton_Click(object sender, RoutedEventArgs e)
         {
             TestCapitalUpdate();
@@ -655,7 +811,6 @@ namespace RC_GUI_WATS
                 
                 StatusBarText.Text = $"Łączenie z {_serverIp}:{_serverPort}...";
                 await _rcClient.ConnectAsync(_serverIp, _serverPort);
-                ConnectToServerAsync();
                 
                 // Wyczyść bieżące dane przed pobieraniem nowych
                 _positions.Clear();
@@ -665,6 +820,9 @@ namespace RC_GUI_WATS
                 
                 // Rewindowanie wiadomości - pobieranie wszystkich historycznych danych
                 await _rcClient.SendRewindAsync(0);
+                
+                // Pobierz historię kontroli
+                await LoadControlHistoryAsync();
             }
             catch (Exception ex)
             {
@@ -695,7 +853,6 @@ namespace RC_GUI_WATS
             }
         }
 
-
         private async Task LoadHistoricalDataAsync()
         {
             if (!_rcClient.IsConnected)
@@ -715,6 +872,80 @@ namespace RC_GUI_WATS
             
             // Odśwież UI
             RefreshPositionsGrid();
+        }
+
+
+
+
+
+        // Obsługa zmiany typu zakresu dla szybkiej zmiany limitów
+        private void QuickScopeTypeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            // Dostosuj pole zakresu w zależności od wybranego typu
+            if (QuickScopeTypeComboBox.SelectedIndex == 0) // Wszystkie instrumenty
+            {
+                QuickScopeValueTextBox.Text = "(ALL)";
+                QuickScopeValueTextBox.IsEnabled = false;
+            }
+            else if (QuickScopeTypeComboBox.SelectedIndex == 1) // Grupa instrumentów
+            {
+                QuickScopeValueTextBox.Text = "[11*]";
+                QuickScopeValueTextBox.IsEnabled = true;
+            }
+            else if (QuickScopeTypeComboBox.SelectedIndex == 2) // Pojedynczy instrument
+            {
+                QuickScopeValueTextBox.Text = "PLPKO0000016";
+                QuickScopeValueTextBox.IsEnabled = true;
+            }
+        }
+
+        // Obsługa przycisku szybkiej zmiany limitu
+        private async void ApplyQuickLimitButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!_rcClient.IsConnected)
+            {
+                MessageBox.Show("Nie jesteś połączony z serwerem!", "Błąd", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            
+            // Walidacja
+            if (string.IsNullOrWhiteSpace(QuickScopeValueTextBox.Text))
+            {
+                MessageBox.Show("Podaj wartość zakresu", "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+            
+            if (QuickLimitTypeComboBox.SelectedItem == null)
+            {
+                MessageBox.Show("Wybierz typ limitu", "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+            
+            if (string.IsNullOrWhiteSpace(QuickLimitValueTextBox.Text))
+            {
+                MessageBox.Show("Podaj wartość limitu", "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+            
+            try
+            {
+                // Utworzenie ciągu kontrolnego
+                string scope = QuickScopeValueTextBox.Text;
+                string limitType = (QuickLimitTypeComboBox.SelectedItem as ComboBoxItem)?.Content.ToString();
+                string limitValue = QuickLimitValueTextBox.Text;
+                
+                string controlString = $"{scope},{limitType},{limitValue}";
+                
+                // Wysłanie do serwera
+                await _rcClient.SendSetControlAsync(controlString);
+                
+                StatusBarText.Text = $"Wysłano limit: {controlString}";
+                RawMessagesTextBox.AppendText($"Wysłano limit: {controlString}\n");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Błąd podczas wysyłania limitu: {ex.Message}", "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
     }
 }

@@ -3,6 +3,8 @@ C:\Users\janwil\Documents\RC GUI WATS 1.1\RC_GUI_WATS\bin\Debug\net8.0-windows\R
 C:\Users\janwil\Documents\RC GUI WATS 1.1\RC_GUI_WATS\bin\Debug\net8.0-windows\RC_GUI_WATS.runtimeconfig.json
 C:\Users\janwil\Documents\RC GUI WATS 1.1\RC_GUI_WATS\bin\Debug\net8.0-windows\RC_GUI_WATS.dll
 C:\Users\janwil\Documents\RC GUI WATS 1.1\RC_GUI_WATS\bin\Debug\net8.0-windows\RC_GUI_WATS.pdb
+C:\Users\janwil\Documents\RC GUI WATS 1.1\RC_GUI_WATS\obj\Debug\net8.0-windows\AddLimitWindow.baml
+C:\Users\janwil\Documents\RC GUI WATS 1.1\RC_GUI_WATS\obj\Debug\net8.0-windows\AddLimitWindow.g.cs
 C:\Users\janwil\Documents\RC GUI WATS 1.1\RC_GUI_WATS\obj\Debug\net8.0-windows\MainWindow.g.cs
 C:\Users\janwil\Documents\RC GUI WATS 1.1\RC_GUI_WATS\obj\Debug\net8.0-windows\App.g.cs
 C:\Users\janwil\Documents\RC GUI WATS 1.1\RC_GUI_WATS\obj\Debug\net8.0-windows\RC_GUI_WATS_MarkupCompile.cache
@@ -13,6 +15,7 @@ C:\Users\janwil\Documents\RC GUI WATS 1.1\RC_GUI_WATS\obj\Debug\net8.0-windows\R
 C:\Users\janwil\Documents\RC GUI WATS 1.1\RC_GUI_WATS\obj\Debug\net8.0-windows\RC_GUI_WATS.AssemblyInfoInputs.cache
 C:\Users\janwil\Documents\RC GUI WATS 1.1\RC_GUI_WATS\obj\Debug\net8.0-windows\RC_GUI_WATS.AssemblyInfo.cs
 C:\Users\janwil\Documents\RC GUI WATS 1.1\RC_GUI_WATS\obj\Debug\net8.0-windows\RC_GUI_WATS.csproj.CoreCompileInputs.cache
+C:\Users\janwil\Documents\RC GUI WATS 1.1\RC_GUI_WATS\obj\Debug\net8.0-windows\RC_GUI_WATS.sourcelink.json
 C:\Users\janwil\Documents\RC GUI WATS 1.1\RC_GUI_WATS\obj\Debug\net8.0-windows\RC_GUI_WATS.dll
 C:\Users\janwil\Documents\RC GUI WATS 1.1\RC_GUI_WATS\obj\Debug\net8.0-windows\refint\RC_GUI_WATS.dll
 C:\Users\janwil\Documents\RC GUI WATS 1.1\RC_GUI_WATS\obj\Debug\net8.0-windows\RC_GUI_WATS.pdb
