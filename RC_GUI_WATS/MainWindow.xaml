@@ -152,6 +152,8 @@
                                     Padding="5,2" Click="AddLimitButton_Click"/>
                             <Button x:Name="RefreshLimitsButton" Content="Odśwież limity" Margin="0,0,5,0" 
                                     Padding="5,2" Click="RefreshLimitsButton_Click"/>
+                            <Button x:Name="SaveLimitsButton" Content="Zapisz limity" Margin="0,0,5,0" 
+                                    Padding="5,2" Click="SaveLimitsButton_Click"/>
                         </StackPanel>
                         
                         <!-- Tabela limitów -->

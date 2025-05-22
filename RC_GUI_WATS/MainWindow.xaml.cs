@@ -36,6 +36,8 @@ namespace RC_GUI_WATS
         {
             InitializeComponent();
 
+            LoadConfigurationSettings();
+
             _rcClient = new RcTcpClient();
             _rcClient.MessageReceived += OnMessageReceived;
             _rcClient.ConnectionStatusChanged += OnConnectionStatusChanged;
@@ -59,10 +61,16 @@ namespace RC_GUI_WATS
 
             InstrumentsDataGrid.ItemsSource = _instruments;
 
+            //LoadInstrumentsFromCsv();
+
             UpdateCapitalDisplay();
 
             // Automatyczne połączenie przy starcie aplikacji
-            ConnectToServerAsync();
+            if(AppConfig.AutoConnect)
+            {
+                ConnectToServerAsync();
+            }
+            
 
 
 
@@ -92,6 +100,44 @@ namespace RC_GUI_WATS
                 StatusBarText.Text = $"Błąd połączenia: {ex.Message}";
                 // Nie pokazujemy MessageBox, żeby nie blokować UI przy starcie
                 Console.WriteLine($"Błąd podczas łączenia: {ex.Message}");
+            }
+        }
+
+        private void LoadConfigurationSettings()
+        {
+            try
+            {
+                // Load server connection settings
+                _serverIp = AppConfig.ServerIP;
+                _serverPort = AppConfig.ServerPort;
+
+                // Update UI elements with loaded settings
+                if (ServerIpTextBox != null)
+                    ServerIpTextBox.Text = _serverIp;
+                if (ServerPortTextBox != null)
+                    ServerPortTextBox.Text = _serverPort.ToString();
+
+                // Load instruments file path if specified
+                _instrumentsFilePath = AppConfig.InstrumentsFilePath;
+                if (!string.IsNullOrEmpty(_instrumentsFilePath))
+                {
+                    // Update UI
+                    if (InstrumentsFilePathText != null)
+                        InstrumentsFilePathText.Text = System.IO.Path.GetFileName(_instrumentsFilePath);
+                    
+                    // Load instruments if file exists
+                    if (System.IO.File.Exists(_instrumentsFilePath))
+                    {
+                        LoadInstrumentsFromCsv(_instrumentsFilePath);
+                    }
+                }
+
+                StatusBarText.Text = "Konfiguracja załadowana";
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading configuration: {ex.Message}");
+                StatusBarText.Text = "Błąd podczas ładowania konfiguracji";
             }
         }
 
@@ -962,6 +1008,86 @@ namespace RC_GUI_WATS
                 MessageBox.Show($"Błąd podczas wysyłania limitu: {ex.Message}", "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+        
+        // Add this method to the MainWindow class in MainWindow.xaml.cs
+        private void SaveLimitsButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_controlLimits.Count == 0)
+            {
+                MessageBox.Show("Brak limitów do zapisania.", "Informacja", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var saveFileDialog = new SaveFileDialog
+            {
+                Filter = "CSV Files (*.csv)|*.csv|Text Files (*.txt)|*.txt|All Files (*.*)|*.*",
+                DefaultExt = "csv",
+                Title = "Zapisz limity do pliku"
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                try
+                {
+                    StatusBarText.Text = "Zapisywanie limitów...";
+                    
+                    // Sort limits according to requested order:
+                    // 1. ALL limits first
+                    // 2. Group limits next
+                    // 3. Individual instrument limits last
+                    var sortedLimits = _controlLimits.ToList();
+                    
+                    sortedLimits.Sort((a, b) => 
+                    {
+                        // Helper function to get priority of scope type
+                        int GetScopePriority(string scope)
+                        {
+                            if (scope == "(ALL)")
+                                return 0; // Highest priority
+                            else if (scope.StartsWith("[") && scope.EndsWith("]"))
+                                return 1; // Middle priority
+                            else
+                                return 2; // Lowest priority (individual ISINs)
+                        }
+                        
+                        // Compare by scope priority first
+                        int aPriority = GetScopePriority(a.Scope);
+                        int bPriority = GetScopePriority(b.Scope);
+                        
+                        if (aPriority != bPriority)
+                            return aPriority.CompareTo(bPriority);
+                        
+                        // If same type, compare by name
+                        if (a.Name != b.Name)
+                            return string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
+                        
+                        // If same name, compare by scope value (for groups and ISINs)
+                        return string.Compare(a.Scope, b.Scope, StringComparison.OrdinalIgnoreCase);
+                    });
+                    
+                    // Write to file
+                    using (StreamWriter writer = new StreamWriter(saveFileDialog.FileName))
+                    {
+                        // Write header
+                        writer.WriteLine("Scope,Name,Value");
+                        
+                        // Write sorted limits
+                        foreach (var limit in sortedLimits)
+                        {
+                            writer.WriteLine(limit.ToControlString());
+                        }
+                    }
+                    
+                    StatusBarText.Text = $"Zapisano {sortedLimits.Count} limitów do pliku {Path.GetFileName(saveFileDialog.FileName)}";
+                    MessageBox.Show($"Zapisano {sortedLimits.Count} limitów do pliku.", "Zapisano", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Błąd podczas zapisywania limitów: {ex.Message}", "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
+                    StatusBarText.Text = "Błąd podczas zapisywania limitów";
+                }
+            }
+        }        
 
 
 
@@ -975,7 +1101,7 @@ namespace RC_GUI_WATS
                 Filter = "CSV Files (*.csv)|*.csv|All Files (*.*)|*.*",
                 Title = "Select Instruments CSV File"
             };
-            
+
             if (openFileDialog.ShowDialog() == true)
             {
                 _instrumentsFilePath = openFileDialog.FileName;
