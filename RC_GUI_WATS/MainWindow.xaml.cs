@@ -10,6 +10,10 @@ using System.Threading.Tasks;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows.Controls;
+using System.IO;
+using System.Globalization;
+using Microsoft.Win32;
+
 
 namespace RC_GUI_WATS
 {
@@ -21,37 +25,42 @@ namespace RC_GUI_WATS
         private Dictionary<string, Position> _positionsByIsin = new Dictionary<string, Position>();
         private string _serverIp = "172.31.136.4";
         private int _serverPort = 19083;
-        
+
+        private ObservableCollection<Instrument> _instruments = new ObservableCollection<Instrument>();
+        private string _instrumentsFilePath = string.Empty;
+
         // Kolekcja limitów kontroli
         private ObservableCollection<ControlLimit> _controlLimits = new ObservableCollection<ControlLimit>();
 
         public MainWindow()
         {
             InitializeComponent();
-            
+
             _rcClient = new RcTcpClient();
             _rcClient.MessageReceived += OnMessageReceived;
             _rcClient.ConnectionStatusChanged += OnConnectionStatusChanged;
-            
+
             // Inicjalizacja DataGrid dla pozycji
             _positions = new ObservableCollection<Position>();
             PositionsDataGrid.ItemsSource = _positions;
-            
+
             // Inicjalizacja DataGrid dla limitów
             LimitsDataGrid.ItemsSource = _controlLimits;
-            
+
             // Ustawienie wartości domyślnych
             _currentCapital.MessagesPercentage = 0;
             _currentCapital.MessagesLimit = 0;
             _currentCapital.CapitalPercentage = 0;
             _currentCapital.CapitalLimit = 0;
-            
+
 
             QuickScopeTypeComboBox.SelectedIndex = 0;
             QuickLimitTypeComboBox.SelectedIndex = 0;
 
+            InstrumentsDataGrid.ItemsSource = _instruments;
+
             UpdateCapitalDisplay();
-            
+
             // Automatyczne połączenie przy starcie aplikacji
             ConnectToServerAsync();
 
@@ -65,16 +74,16 @@ namespace RC_GUI_WATS
             {
                 StatusBarText.Text = $"Łączenie z {_serverIp}:{_serverPort}...";
                 await _rcClient.ConnectAsync(_serverIp, _serverPort);
-                    
+
                 // Wyczyść bieżące dane przed pobieraniem nowych
                 _positions.Clear();
                 _positionsByIsin.Clear();
-                    
+
                 StatusBarText.Text = "Pobieranie historycznych danych...";
-                    
+
                 // Rewindowanie wiadomości - pobieranie wszystkich historycznych danych
                 await _rcClient.SendRewindAsync(0);
-                
+
                 // Po połączeniu, pobierz historię kontroli
                 await LoadControlHistoryAsync();
             }
@@ -93,14 +102,14 @@ namespace RC_GUI_WATS
             {
                 // Logowanie surowych danych dla debugowania
                 LogRawMessage(message);
-                
+
                 // Przetwarzanie wszystkich bloków wiadomości
                 foreach (var block in message.Blocks)
                 {
                     if (block.Payload.Length > 0)
                     {
                         char messageType = (char)block.Payload[0];
-                        
+
                         switch (messageType)
                         {
                             case 'P': // Position
@@ -142,25 +151,25 @@ namespace RC_GUI_WATS
             // Jeśli nie mamy RawMessagesTextBox, nic nie robimy
             if (RawMessagesTextBox == null)
                 return;
-                
+
             StringBuilder sb = new StringBuilder();
-            
+
             sb.AppendLine($"--- Wiadomość {DateTime.Now:HH:mm:ss.fff} ---");
             sb.AppendLine($"Sesja: {message.Header.Session}, Sekwencja: {message.Header.SequenceNumber}, Bloków: {message.Header.BlockCount}");
-            
+
             int blockIndex = 0;
             foreach (var block in message.Blocks)
             {
                 sb.AppendLine($"Blok {blockIndex++} | Długość: {block.Length}");
-                
+
                 if (block.Payload.Length > 0)
                 {
                     char type = (char)block.Payload[0];
                     sb.AppendLine($"Typ: {type}");
-                    
+
                     // Pokazanie surowych danych hexadecymalnie
                     sb.AppendLine($"Dane: {BitConverter.ToString(block.Payload)}");
-                    
+
                     // Próba pokazania jako tekst ASCII
                     try
                     {
@@ -169,18 +178,18 @@ namespace RC_GUI_WATS
                     }
                     catch { }
                 }
-                
+
                 sb.AppendLine();
             }
-            
+
             sb.AppendLine();
-            
+
             // Ograniczenie rozmiaru logu
             if (RawMessagesTextBox.Text.Length > 10000)
             {
                 RawMessagesTextBox.Text = RawMessagesTextBox.Text.Substring(5000);
             }
-            
+
             RawMessagesTextBox.AppendText(sb.ToString());
             RawMessagesTextBox.ScrollToEnd();
         }
@@ -192,22 +201,22 @@ namespace RC_GUI_WATS
                 RawMessagesTextBox.AppendText($"ERROR: Wiadomość Position za krótka: {payload.Length} bajtów zamiast minimum 25\n");
                 return;
             }
-                
+
             string isin = Encoding.ASCII.GetString(payload, 1, 12).Trim('\0');
             int net = BitConverter.ToInt32(payload, 13);
             int openLong = BitConverter.ToInt32(payload, 17);
             int openShort = BitConverter.ToInt32(payload, 21);
-            
+
             // Debug
             RawMessagesTextBox.AppendText($"POSITION: ISIN={isin}, Net={net}, OpenLong={openLong}, OpenShort={openShort}\n");
-            
+
             // Ignoruj puste ISIN
             if (string.IsNullOrWhiteSpace(isin))
             {
                 RawMessagesTextBox.AppendText($"Pominięto pustą pozycję\n");
                 return;
             }
-            
+
             bool isUpdated = false;
             // Sprawdź, czy pozycja już istnieje
             if (_positionsByIsin.TryGetValue(isin, out Position existingPosition))
@@ -234,13 +243,13 @@ namespace RC_GUI_WATS
                     OpenLong = openLong,
                     OpenShort = openShort
                 };
-                
+
                 _positions.Add(newPosition);
                 _positionsByIsin[isin] = newPosition;
                 isUpdated = true;
                 RawMessagesTextBox.AppendText($"Dodano nową pozycję: {isin}, liczba pozycji: {_positions.Count}\n");
             }
-            
+
             // Odśwież UI tylko jeśli dane zostały zaktualizowane
             if (isUpdated)
             {
@@ -260,10 +269,10 @@ namespace RC_GUI_WATS
                     {
                         // Wersja 1: Używając Items.Refresh
                         PositionsDataGrid.Items.Refresh();
-                        
+
                         // Wersja 2: Alternatywne podejście, jeśli refresh nie działa
                         // CollectionViewSource.GetDefaultView(PositionsDataGrid.ItemsSource).Refresh();
-                        
+
                         StatusBarText.Text = $"Liczba pozycji: {_positions.Count}";
                     }
                 }
@@ -281,64 +290,64 @@ namespace RC_GUI_WATS
                 RawMessagesTextBox.AppendText($"ERROR: Wiadomość Capital za krótka: {payload.Length} bajtów zamiast minimum 25\n");
                 return;
             }
-            
+
             // Wyświetl surowe dane do analizy
             RawMessagesTextBox.AppendText($"CAPITAL pełne dane: {BitConverter.ToString(payload)}\n");
-            
+
             try
             {
                 // Zgodnie z dokumentacją:
                 // - Offset 1: 8-bajtowy double IEEE 754 (Open Capital)
                 // - Offset 9: 8-bajtowy double IEEE 754 (Accrued Capital)
                 // - Offset 17: 8-bajtowy double IEEE 754 (Total Capital)
-                
+
                 double openCapital = BitConverter.ToDouble(payload, 1);
                 double accruedCapital = BitConverter.ToDouble(payload, 9);
                 double totalCapital = BitConverter.ToDouble(payload, 17);
-                
+
                 RawMessagesTextBox.AppendText($"CAPITAL (surowe wartości): Open={openCapital}, Accrued={accruedCapital}, Total={totalCapital}\n");
-                
+
                 // Aktualizuj model tylko jeśli wartości są sensowne
                 // Sprawdźmy, czy wartości są w rozsądnym zakresie - jeśli nie, mogą być konieczne dodatkowe 
                 // transformacje lub inne podejście do interpretacji danych
                 bool validValues = !double.IsNaN(openCapital) && !double.IsInfinity(openCapital) &&
                                 !double.IsNaN(accruedCapital) && !double.IsInfinity(accruedCapital) &&
                                 !double.IsNaN(totalCapital) && !double.IsInfinity(totalCapital);
-                
+
                 if (validValues)
                 {
                     // Zaktualizuj model
                     _currentCapital.OpenCapital = openCapital;
                     _currentCapital.AccruedCapital = accruedCapital;
                     _currentCapital.TotalCapital = totalCapital;
-                    
+
                     RawMessagesTextBox.AppendText($"CAPITAL (po aktualizacji): Open={_currentCapital.OpenCapital}, Accrued={_currentCapital.AccruedCapital}, Total={_currentCapital.TotalCapital}\n");
-                    
+
                     // Upewnij się, że UI jest natychmiast aktualizowane
                     UpdateCapitalDisplay();
                 }
                 else
                 {
                     RawMessagesTextBox.AppendText($"Odrzucono nieprawidłowe wartości kapitału\n");
-                    
+
                     // Spróbujmy alternatywnej interpretacji - może to jednak Int32 lub Int64
                     long openCapitalInt64 = BitConverter.ToInt64(payload, 1);
                     long accruedCapitalInt64 = BitConverter.ToInt64(payload, 9);
                     long totalCapitalInt64 = BitConverter.ToInt64(payload, 17);
-                    
+
                     int openCapitalInt32 = BitConverter.ToInt32(payload, 1);
                     int accruedCapitalInt32 = BitConverter.ToInt32(payload, 9);
                     int totalCapitalInt32 = BitConverter.ToInt32(payload, 17);
-                    
+
                     RawMessagesTextBox.AppendText($"Alternatywne interpretacje:\n");
                     RawMessagesTextBox.AppendText($"Int64: Open={openCapitalInt64}, Accrued={accruedCapitalInt64}, Total={totalCapitalInt64}\n");
                     RawMessagesTextBox.AppendText($"Int32: Open={openCapitalInt32}, Accrued={accruedCapitalInt32}, Total={totalCapitalInt32}\n");
-                    
+
                     // Więcej debugowania - wypisz wszystkie bajty jako wartości liczbowe
                     RawMessagesTextBox.AppendText("Wartości poszczególnych bajtów:\n");
                     for (int i = 0; i < 8; i++)
                     {
-                        RawMessagesTextBox.AppendText($"Open[{i}]={payload[1+i]}, Accrued[{i}]={payload[9+i]}, Total[{i}]={payload[17+i]}\n");
+                        RawMessagesTextBox.AppendText($"Open[{i}]={payload[1 + i]}, Accrued[{i}]={payload[9 + i]}, Total[{i}]={payload[17 + i]}\n");
                     }
                 }
             }
@@ -352,14 +361,14 @@ namespace RC_GUI_WATS
         {
             if (payload.Length < 3)
                 return;
-                
+
             ushort msgLength = BitConverter.ToUInt16(payload, 1);
             if (payload.Length < 3 + msgLength)
                 return;
-                
+
             string message = Encoding.ASCII.GetString(payload, 3, msgLength);
             string logLevel = "";
-            
+
             switch (logType)
             {
                 case 'D': logLevel = "DEBUG"; break;
@@ -367,9 +376,9 @@ namespace RC_GUI_WATS
                 case 'W': logLevel = "WARNING"; break;
                 case 'E': logLevel = "ERROR"; break;
             }
-            
+
             StatusBarText.Text = $"[{logLevel}] {message}";
-            
+
             // Sprawdź, czy wiadomość info zawiera kontrolę
             // Po żądaniu GetControlsHistory serwer wysyła historię kontroli jako wiadomości 'I'
             if (logType == 'I' && message.Contains(','))
@@ -383,12 +392,12 @@ namespace RC_GUI_WATS
                         UpdateControlLimit(message);
                     }
                 }
-                catch 
+                catch
                 {
                     // Ignoruj błędy przy próbie interpretacji - to może nie być kontrola
                 }
             }
-            
+
             // Często limity są przekazywane w wiadomościach logów
             TryExtractLimitsFromLog(message);
         }
@@ -396,7 +405,7 @@ namespace RC_GUI_WATS
         private void TryExtractLimitsFromLog(string message)
         {
             RawMessagesTextBox.AppendText($"Analiza wiadomości pod kątem limitów: {message}\n");
-            
+
             // Sprawdź, czy wiadomość zawiera informacje o procentach i limitach
             if ((message.Contains("%") || message.Contains("percent")) && message.Contains("of"))
             {
@@ -410,51 +419,51 @@ namespace RC_GUI_WATS
                         if (percentIndex < 0)
                             return;
                     }
-                    
+
                     // Znajdź początek liczby przed %
                     int i = percentIndex - 1;
                     while (i >= 0 && (char.IsDigit(message[i]) || message[i] == '.'))
                         i--;
-                    
+
                     string percentText = message.Substring(i + 1, percentIndex - i - 1).Trim();
                     double percent = double.Parse(percentText);
-                    
+
                     // Znajdź "of" i liczbę po nim
                     int ofIndex = message.IndexOf("of", percentIndex);
                     if (ofIndex < 0)
                         return;
-                        
+
                     // Znajdź początek liczby po "of"
                     i = ofIndex + 2;
                     while (i < message.Length && char.IsWhiteSpace(message[i]))
                         i++;
-                        
+
                     // Znajdź koniec liczby
                     int j = i;
                     while (j < message.Length && (char.IsDigit(message[j]) || message[j] == '.'))
                         j++;
-                        
+
                     string limitText = message.Substring(i, j - i).Trim();
                     double limit = double.Parse(limitText);
-                    
+
                     RawMessagesTextBox.AppendText($"Znaleziono limit: {percent}% of {limit}\n");
-                    
+
                     // Określ, czy dotyczy wiadomości czy kapitału
-                    if (message.Contains("message", StringComparison.OrdinalIgnoreCase) || 
+                    if (message.Contains("message", StringComparison.OrdinalIgnoreCase) ||
                         message.Contains("order", StringComparison.OrdinalIgnoreCase))
                     {
                         _currentCapital.MessagesPercentage = percent;
                         _currentCapital.MessagesLimit = limit;
                         RawMessagesTextBox.AppendText("Zaktualizowano limity wiadomości\n");
                     }
-                    else if (message.Contains("capital", StringComparison.OrdinalIgnoreCase) || 
+                    else if (message.Contains("capital", StringComparison.OrdinalIgnoreCase) ||
                              message.Contains("position", StringComparison.OrdinalIgnoreCase))
                     {
                         _currentCapital.CapitalPercentage = percent;
                         _currentCapital.CapitalLimit = limit;
                         RawMessagesTextBox.AppendText("Zaktualizowano limity kapitału\n");
                     }
-                    
+
                     // Aktualizuj UI
                     UpdateCapitalDisplay();
                 }
@@ -470,18 +479,18 @@ namespace RC_GUI_WATS
         {
             if (payload.Length < 3)
                 return;
-                
+
             ushort length = BitConverter.ToUInt16(payload, 1);
             if (payload.Length < 3 + length)
                 return;
-                
+
             string controlString = Encoding.ASCII.GetString(payload, 3, length);
             StatusBarText.Text = $"Control: {controlString}";
             RawMessagesTextBox.AppendText($"SET CONTROL: {controlString}\n");
-            
+
             // Dodaj lub zaktualizuj limit w kolekcji
             UpdateControlLimit(controlString);
-            
+
             // Sprawdzenie, czy kontrola zawiera informacje o limitach
             if (controlString.Contains("maxOrderRate"))
             {
@@ -498,7 +507,7 @@ namespace RC_GUI_WATS
                             rateValue = rateValue.Split('/')[0];
                         }
                         double rate = double.Parse(rateValue);
-                        
+
                         _currentCapital.MessagesLimit = rate;
                         RawMessagesTextBox.AppendText($"Znaleziono limit wiadomości: {rate}\n");
                         UpdateCapitalDisplay();
@@ -520,7 +529,7 @@ namespace RC_GUI_WATS
                         string isin = parts[0];
                         string limitType = parts[1];
                         int limitValue = int.Parse(parts[2]);
-                        
+
                         RawMessagesTextBox.AppendText($"Limit dla instrumentu {isin}: {limitType}={limitValue}\n");
                     }
                 }
@@ -535,13 +544,13 @@ namespace RC_GUI_WATS
         {
             if (payload.Length < 3)
                 return;
-                
+
             ushort length = BitConverter.ToUInt16(payload, 1);
             if (payload.Length < 3 + length)
                 return;
-                
+
             string message = Encoding.ASCII.GetString(payload, 3, length);
-            
+
             // Sprawdzenie, czy wiadomość CCG zawiera informacje o limitach
             RawMessagesTextBox.AppendText($"I/O BYTES: {message}\n");
             TryExtractLimitsFromLog(message); // Używamy tej samej metody, jeśli format jest podobny
@@ -552,15 +561,15 @@ namespace RC_GUI_WATS
         {
             if (!_rcClient.IsConnected)
                 return;
-                
+
             StatusBarText.Text = "Pobieranie historii kontroli...";
-            
+
             // Wyczyść istniejące dane
             _controlLimits.Clear();
-            
+
             // Wyślij żądanie historii kontroli
             await _rcClient.SendGetControlsHistoryAsync();
-            
+
             // Aktualizacja zostanie obsłużona przez obsługę wiadomości typu 'I'/'S'
         }
 
@@ -570,18 +579,19 @@ namespace RC_GUI_WATS
             var limit = ControlLimit.FromControlString(controlString);
             if (limit == null)
                 return;
-                
+
             // Sprawdź, czy taki limit już istnieje
-            var existingLimit = _controlLimits.FirstOrDefault(l => 
+            var existingLimit = _controlLimits.FirstOrDefault(l =>
                 l.Scope == limit.Scope && l.Name == limit.Name);
-                
+
             if (existingLimit != null)
             {
                 // Aktualizuj istniejący limit
                 existingLimit.Value = limit.Value;
-                
+
                 // Odśwież widok
-                Dispatcher.Invoke(() => {
+                Dispatcher.Invoke(() =>
+                {
                     if (LimitsDataGrid != null)
                         LimitsDataGrid.Items.Refresh();
                 });
@@ -589,11 +599,12 @@ namespace RC_GUI_WATS
             else
             {
                 // Dodaj nowy limit na początku kolekcji, aby najnowsze były na górze
-                Dispatcher.Invoke(() => {
+                Dispatcher.Invoke(() =>
+                {
                     _controlLimits.Insert(0, limit); // Dodaj na początek zamiast _controlLimits.Add(limit);
                 });
             }
-            
+
             RawMessagesTextBox.AppendText($"Zaktualizowano limit: {limit.Scope}, {limit.Name}, {limit.Value}\n");
         }
 
@@ -608,7 +619,7 @@ namespace RC_GUI_WATS
                 {
                     // Dodaj do kolekcji
                     _controlLimits.Add(newLimit);
-                    
+
                     // Wyślij do serwera
                     SendControlLimit(newLimit);
                 }
@@ -670,10 +681,10 @@ namespace RC_GUI_WATS
             _currentCapital.OpenCapital = 123;
             _currentCapital.AccruedCapital = 123;
             _currentCapital.TotalCapital = _currentCapital.OpenCapital + _currentCapital.AccruedCapital;
-            
+
             // Aktualizuj UI
             UpdateCapitalDisplay();
-            
+
             // Zaloguj
             Console.WriteLine("Testowo zaktualizowano wartości kapitału");
             if (RawMessagesTextBox != null)
@@ -708,7 +719,7 @@ namespace RC_GUI_WATS
                 default: return isin.Substring(Math.Max(0, isin.Length - 3));
             }
         }
-        
+
         private string GetNameFromIsin(string isin)
         {
             // Tymczasowa logika
@@ -727,7 +738,7 @@ namespace RC_GUI_WATS
                 default: return "Unknown";
             }
         }
-        
+
         private void UpdateCapitalDisplay()
         {
             try
@@ -738,18 +749,18 @@ namespace RC_GUI_WATS
                 {
                     RawMessagesTextBox.AppendText($"UPDATE UI: Open={_currentCapital.OpenCapital}, Accrued={_currentCapital.AccruedCapital}, Total={_currentCapital.TotalCapital}\n");
                 }
-                
+
                 // Aktualizacja wyświetlanych wartości kapitału
                 OpenCapitalTextBlock.Text = _currentCapital.OpenCapital.ToString("0.00");
                 AccruedCapitalTextBlock.Text = _currentCapital.AccruedCapital.ToString("0.00");
                 TotalCapitalTextBlock.Text = _currentCapital.TotalCapital.ToString("0.00");
-                
+
                 // Aktualizacja limitów
                 MessagesPercentageTextBlock.Text = $"{_currentCapital.MessagesPercentage}%";
                 MessagesLimitTextBlock.Text = _currentCapital.MessagesLimit.ToString();
                 CapitalPercentageTextBlock.Text = $"{_currentCapital.CapitalPercentage}%";
                 CapitalLimitTextBlock.Text = _currentCapital.CapitalLimit.ToString();
-                
+
                 // Ustawienie kolorów w zależności od procentów
                 MessagesPercentageTextBlock.Foreground = GetBrushForPercentage(_currentCapital.MessagesPercentage);
                 CapitalPercentageTextBlock.Foreground = GetBrushForPercentage(_currentCapital.CapitalPercentage);
@@ -764,7 +775,7 @@ namespace RC_GUI_WATS
                 }
             }
         }
-        
+
         private Brush GetBrushForPercentage(double percentage)
         {
             if (percentage < 50)
@@ -805,22 +816,22 @@ namespace RC_GUI_WATS
                 // Odczytaj IP i port z pól tekstowych, jeśli są dostępne
                 if (ServerIpTextBox != null && !string.IsNullOrEmpty(ServerIpTextBox.Text))
                     _serverIp = ServerIpTextBox.Text;
-                
+
                 if (ServerPortTextBox != null && !string.IsNullOrEmpty(ServerPortTextBox.Text))
                     _serverPort = int.Parse(ServerPortTextBox.Text);
-                
+
                 StatusBarText.Text = $"Łączenie z {_serverIp}:{_serverPort}...";
                 await _rcClient.ConnectAsync(_serverIp, _serverPort);
-                
+
                 // Wyczyść bieżące dane przed pobieraniem nowych
                 _positions.Clear();
                 _positionsByIsin.Clear();
-                
+
                 StatusBarText.Text = "Pobieranie historycznych danych...";
-                
+
                 // Rewindowanie wiadomości - pobieranie wszystkich historycznych danych
                 await _rcClient.SendRewindAsync(0);
-                
+
                 // Pobierz historię kontroli
                 await LoadControlHistoryAsync();
             }
@@ -835,7 +846,7 @@ namespace RC_GUI_WATS
         {
             _rcClient.Disconnect();
         }
-        
+
         private async void AllSwitchButton_Click(object sender, RoutedEventArgs e)
         {
             if (_rcClient.IsConnected)
@@ -857,19 +868,19 @@ namespace RC_GUI_WATS
         {
             if (!_rcClient.IsConnected)
                 return;
-                
+
             StatusBarText.Text = "Pobieranie historycznych danych...";
-            
+
             // Wyczyść dane przed pobieraniem
             _positions.Clear();
             _positionsByIsin.Clear();
-            
+
             // Rewindowanie wiadomości - pobieranie wszystkich historycznych danych
             await _rcClient.SendRewindAsync(0);
-            
+
             // Możemy dodać krótkie opóźnienie, aby dać czas na przetworzenie danych
             await Task.Delay(500);
-            
+
             // Odśwież UI
             RefreshPositionsGrid();
         }
@@ -907,45 +918,219 @@ namespace RC_GUI_WATS
                 MessageBox.Show("Nie jesteś połączony z serwerem!", "Błąd", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
-            
+
             // Walidacja
             if (string.IsNullOrWhiteSpace(QuickScopeValueTextBox.Text))
             {
                 MessageBox.Show("Podaj wartość zakresu", "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
-            
+
             if (QuickLimitTypeComboBox.SelectedItem == null)
             {
                 MessageBox.Show("Wybierz typ limitu", "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
-            
+
             if (string.IsNullOrWhiteSpace(QuickLimitValueTextBox.Text))
             {
                 MessageBox.Show("Podaj wartość limitu", "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
-            
+
             try
             {
                 // Utworzenie ciągu kontrolnego
                 string scope = QuickScopeValueTextBox.Text;
                 string limitType = (QuickLimitTypeComboBox.SelectedItem as ComboBoxItem)?.Content.ToString();
                 string limitValue = QuickLimitValueTextBox.Text;
-                
+
                 string controlString = $"{scope},{limitType},{limitValue}";
-                
+
                 // Wysłanie do serwera
                 await _rcClient.SendSetControlAsync(controlString);
-                
+
                 StatusBarText.Text = $"Wysłano limit: {controlString}";
                 RawMessagesTextBox.AppendText($"Wysłano limit: {controlString}\n");
+
+                await LoadControlHistoryAsync();
+
+
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Błąd podczas wysyłania limitu: {ex.Message}", "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+
+
+
+        //==============================instruments=======================================
+
+        private void SelectInstrumentsFileButton_Click(object sender, RoutedEventArgs e)
+        {
+            var openFileDialog = new OpenFileDialog
+            {
+                Filter = "CSV Files (*.csv)|*.csv|All Files (*.*)|*.*",
+                Title = "Select Instruments CSV File"
+            };
+            
+            if (openFileDialog.ShowDialog() == true)
+            {
+                _instrumentsFilePath = openFileDialog.FileName;
+                InstrumentsFilePathText.Text = Path.GetFileName(_instrumentsFilePath);
+                LoadInstrumentsFromCsv(_instrumentsFilePath);
+            }
+        }
+
+        private void LoadInstrumentsFromCsv(string filePath)
+        {
+            try
+            {
+                StatusBarText.Text = "Loading instruments file...";
+                _instruments.Clear();
+                
+                // Read all lines from the file
+                string[] lines = File.ReadAllLines(filePath);
+                
+                // Get headers (first line)
+                if (lines.Length > 0)
+                {
+                    string[] headers = lines[0].Split(',');
+                    
+                    // Process data rows
+                    for (int i = 1; i < lines.Length; i++)
+                    {
+                        string line = lines[i].Trim();
+                        if (!string.IsNullOrEmpty(line))
+                        {
+                            try
+                            {
+                                string[] values = line.Split(',');
+                                
+                                if (values.Length >= 57) // Ensure we have all columns
+                                {
+                                    var instrument = new Instrument
+                                    {
+                                        InstrumentID = ParseInt(values[0]),
+                                        ISIN = values[1],
+                                        ProductCode = values[2],
+                                        ReferencePrice = ParseDouble(values[3]),
+                                        Multiplier = ParseDouble(values[4]),
+                                        MIC = values[5],
+                                        InstrumentTypeID = ParseInt(values[6]),
+                                        InstrumentType = values[7],
+                                        InstrumentSubtypeID = ParseInt(values[8]),
+                                        InstrumentSubtype = values[9],
+                                        MarketStructureID = ParseInt(values[10]),
+                                        MarketStructureName = values[11],
+                                        Currency = values[12],
+                                        CollarGroupId = ParseInt(values[13]),
+                                        OrderStaticCollarModeId = ParseInt(values[14]),
+                                        OrderStaticCollarMode = values[15],
+                                        OrderStaticCollarExpressionTypeId = ParseInt(values[16]),
+                                        OrderStaticCollarExpressionType = values[17],
+                                        OrderStaticCollarLowerBound = ParseDouble(values[18]),
+                                        OrderStaticCollarValue = ParseDouble(values[19]),
+                                        OrderStaticCollarLowerBid = ParseDouble(values[20]),
+                                        OrderStaticCollarUpperBid = ParseDouble(values[21]),
+                                        OrderStaticCollarUpperAsk = ParseDouble(values[22]),
+                                        OrderStaticCollarLowerAsk = ParseDouble(values[23]),
+                                        FirstTradingDate = ParseDate(values[24]),
+                                        LastTradingDate = ParseDate(values[25]),
+                                        ProductID = ParseInt(values[26]),
+                                        LotSize = ParseInt(values[27]),
+                                        PriceExpressionType = ParseInt(values[28]),
+                                        CalendarID = ParseInt(values[29]),
+                                        TickTableID = ParseInt(values[30]),
+                                        TradingScheduleID = ParseInt(values[31]),
+                                        NominalValueType = ParseInt(values[32]),
+                                        StrikePrice = ParseDouble(values[33]),
+                                        SettlementCalendarID = ParseInt(values[34]),
+                                        BondCouponType = ParseInt(values[35]),
+                                        Liquidity = ParseBool(values[36]),
+                                        MarketModelTypeID = ParseInt(values[37]),
+                                        MarketModelType = values[38],
+                                        IssuerRegCountry = values[39],
+                                        UnderlyingInstrumentID = ParseInt(values[40]),
+                                        CFICode = values[41],
+                                        IssueSize = ParseInt(values[42]),
+                                        NominalCurrency = values[43],
+                                        USIndicator = ParseInt(values[44]),
+                                        ExpiryDate = ParseInt(values[45]),
+                                        VersionNumber = ParseInt(values[46]),
+                                        SettlementType = ParseInt(values[47]),
+                                        OptionType = ParseInt(values[48]),
+                                        ExerciseType = ParseInt(values[49]),
+                                        ProductName = values[50],
+                                        Status = ParseInt(values[51]),
+                                        InitialPhaseID = ParseInt(values[52]),
+                                        ThresholdMax = ParseDouble(values[53]),
+                                        ThresholdMin = ParseDouble(values[54]),
+                                        IsLeverage = ParseBool(values[55]),
+                                        NominalValue = ParseDouble(values[56])
+                                    };
+                                    
+                                    _instruments.Add(instrument);
+                                }
+                                else
+                                {
+                                    Console.WriteLine($"Warning: Line {i} has only {values.Length} values, expected 57");
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"Error parsing line {i}: {ex.Message}");
+                            }
+                        }
+                    }
+                }
+                
+                StatusBarText.Text = $"Loaded {_instruments.Count} instruments from {Path.GetFileName(filePath)}";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading instruments file: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                StatusBarText.Text = "Error loading instruments file";
+            }
+        }
+
+        // Helper methods for parsing values
+        private int ParseInt(string value)
+        {
+            if (int.TryParse(value, out int result))
+                return result;
+            return 0;
+        }
+
+        private double ParseDouble(string value)
+        {
+            // Handle both culture-specific number formats
+            if (double.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out double result))
+                return result;
+            return 0;
+        }
+
+        private DateTime ParseDate(string value)
+        {
+            if (DateTime.TryParse(value, out DateTime result))
+                return result;
+            return DateTime.MinValue;
+        }
+
+        private bool ParseBool(string value)
+        {
+            if (bool.TryParse(value, out bool result))
+                return result;
+            
+            // Handle "1"/"0" as bool
+            if (value == "1")
+                return true;
+            if (value == "0") 
+                return false;
+                
+            return false;
         }
     }
 }

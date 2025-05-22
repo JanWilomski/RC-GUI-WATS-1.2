@@ -157,23 +157,23 @@
                         <!-- Tabela limitów -->
                         <DataGrid Grid.Row="1" x:Name="LimitsDataGrid" AutoGenerateColumns="False" 
                                 CanUserAddRows="False" CanUserDeleteRows="False" 
-                                Margin="0,5,0,0" SelectionMode="Single">
+                                Margin="0,5,100,0" SelectionMode="Single">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Zakres" Binding="{Binding DisplayName}" Width="150" IsReadOnly="True"/>
                                 <DataGridTextColumn Header="Typ" Binding="{Binding Name}" Width="120" IsReadOnly="True"/>
-                                <DataGridTextColumn Header="Wartość" Binding="{Binding Value}" Width="*"/>
-                                <DataGridTemplateColumn Width="Auto">
+                                <DataGridTextColumn Header="Wartość" Binding="{Binding Value}" Width="*" IsReadOnly="True"/>
+                                <!--DataGridTemplateColumn Width="Auto">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal">
                                                 <Button Content="Zastosuj" Click="ApplyLimitButton_Click" 
                                                         Margin="2" Padding="5,2"/>
-                                                <!--Button Content="Usuń" Click="RemoveLimitButton_Click" 
-                                                        Margin="2" Padding="5,2"/-->
+                                                <Button Content="Usuń" Click="RemoveLimitButton_Click" 
+                                                        Margin="2" Padding="5,2"/>
                                             </StackPanel>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
+                                </DataGridTemplateColumn-->
                             </DataGrid.Columns>
                         </DataGrid>
                     </Grid>
@@ -241,7 +241,84 @@
             </TabItem>
             <TabItem Header="Instruments">
                 <Grid>
-                    <TextBlock Text="Tutaj pojawią się instrumenty" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <!-- Control panel with Source file button -->
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="5">
+                        <Button x:Name="SelectInstrumentsFileButton" Content="Source file" 
+                                Padding="5,2" Margin="0,0,5,0" Click="SelectInstrumentsFileButton_Click"/>
+                        <TextBlock x:Name="InstrumentsFilePathText" Text="No file selected" 
+                                VerticalAlignment="Center" Margin="5,0,0,0"/>
+                    </StackPanel>
+                    
+                    <!-- Instruments DataGrid -->
+                    <DataGrid Grid.Row="1" x:Name="InstrumentsDataGrid" AutoGenerateColumns="False" 
+                            CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True" 
+                            Margin="5" AlternatingRowBackground="AliceBlue" GridLinesVisibility="All">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="#" Binding="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type DataGridRow}}, Path=Header}" Width="40"/>
+                            <DataGridTextColumn Header="InstrumentID" Binding="{Binding InstrumentID}" Width="90"/>
+                            <DataGridTextColumn Header="ISIN" Binding="{Binding ISIN}" Width="120"/>
+                            <DataGridTextColumn Header="ProductCode" Binding="{Binding ProductCode}" Width="100"/>
+                            <DataGridTextColumn Header="ReferencePrice" Binding="{Binding ReferencePrice, StringFormat=N8}" Width="120"/>
+                            <DataGridTextColumn Header="Multiplier" Binding="{Binding Multiplier, StringFormat=N8}" Width="90"/>
+                            <DataGridTextColumn Header="MIC" Binding="{Binding MIC}" Width="70"/>
+                            <DataGridTextColumn Header="InstrumentTypeID" Binding="{Binding InstrumentTypeID}" Width="120"/>
+                            <DataGridTextColumn Header="InstrumentType" Binding="{Binding InstrumentType}" Width="120"/>
+                            <DataGridTextColumn Header="InstrumentSubtypeID" Binding="{Binding InstrumentSubtypeID}" Width="140"/>
+                            <DataGridTextColumn Header="InstrumentSubtype" Binding="{Binding InstrumentSubtype}" Width="140"/>
+                            <DataGridTextColumn Header="MarketStructureID" Binding="{Binding MarketStructureID}" Width="130"/>
+                            <DataGridTextColumn Header="MarketStructureName" Binding="{Binding MarketStructureName}" Width="160"/>
+                            <DataGridTextColumn Header="Currency" Binding="{Binding Currency}" Width="80"/>
+                            <DataGridTextColumn Header="CollarGroupId" Binding="{Binding CollarGroupId}" Width="110"/>
+                            <DataGridTextColumn Header="OrderStaticCollarModeId" Binding="{Binding OrderStaticCollarModeId}" Width="170"/>
+                            <DataGridTextColumn Header="OrderStaticCollarMode" Binding="{Binding OrderStaticCollarMode}" Width="170"/>
+                            <DataGridTextColumn Header="OrderStaticCollarExpressionTypeId" Binding="{Binding OrderStaticCollarExpressionTypeId}" Width="220"/>
+                            <DataGridTextColumn Header="OrderStaticCollarExpressionType" Binding="{Binding OrderStaticCollarExpressionType}" Width="220"/>
+                            <DataGridTextColumn Header="OrderStaticCollarLowerBound" Binding="{Binding OrderStaticCollarLowerBound, StringFormat=N8}" Width="200"/>
+                            <DataGridTextColumn Header="OrderStaticCollarValue" Binding="{Binding OrderStaticCollarValue, StringFormat=N8}" Width="170"/>
+                            <DataGridTextColumn Header="OrderStaticCollarLowerBid" Binding="{Binding OrderStaticCollarLowerBid, StringFormat=N8}" Width="190"/>
+                            <DataGridTextColumn Header="OrderStaticCollarUpperBid" Binding="{Binding OrderStaticCollarUpperBid, StringFormat=N8}" Width="190"/>
+                            <DataGridTextColumn Header="OrderStaticCollarUpperAsk" Binding="{Binding OrderStaticCollarUpperAsk, StringFormat=N8}" Width="190"/>
+                            <DataGridTextColumn Header="OrderStaticCollarLowerAsk" Binding="{Binding OrderStaticCollarLowerAsk, StringFormat=N8}" Width="190"/>
+                            <DataGridTextColumn Header="FirstTradingDate" Binding="{Binding FirstTradingDate, StringFormat=d}" Width="120"/>
+                            <DataGridTextColumn Header="LastTradingDate" Binding="{Binding LastTradingDate, StringFormat=d}" Width="120"/>
+                            <DataGridTextColumn Header="ProductID" Binding="{Binding ProductID}" Width="90"/>
+                            <DataGridTextColumn Header="LotSize" Binding="{Binding LotSize}" Width="80"/>
+                            <DataGridTextColumn Header="PriceExpressionType" Binding="{Binding PriceExpressionType}" Width="150"/>
+                            <DataGridTextColumn Header="CalendarID" Binding="{Binding CalendarID}" Width="90"/>
+                            <DataGridTextColumn Header="TickTableID" Binding="{Binding TickTableID}" Width="90"/>
+                            <DataGridTextColumn Header="TradingScheduleID" Binding="{Binding TradingScheduleID}" Width="130"/>
+                            <DataGridTextColumn Header="NominalValueType" Binding="{Binding NominalValueType}" Width="130"/>
+                            <DataGridTextColumn Header="StrikePrice" Binding="{Binding StrikePrice, StringFormat=N8}" Width="100"/>
+                            <DataGridTextColumn Header="SettlementCalendarID" Binding="{Binding SettlementCalendarID}" Width="150"/>
+                            <DataGridTextColumn Header="BondCouponType" Binding="{Binding BondCouponType}" Width="130"/>
+                            <DataGridTextColumn Header="Liquidity" Binding="{Binding Liquidity}" Width="80"/>
+                            <DataGridTextColumn Header="MarketModelTypeID" Binding="{Binding MarketModelTypeID}" Width="140"/>
+                            <DataGridTextColumn Header="MarketModelType" Binding="{Binding MarketModelType}" Width="130"/>
+                            <DataGridTextColumn Header="IssuerRegCountry" Binding="{Binding IssuerRegCountry}" Width="130"/>
+                            <DataGridTextColumn Header="UnderlyingInstrumentID" Binding="{Binding UnderlyingInstrumentID}" Width="160"/>
+                            <DataGridTextColumn Header="CFICode" Binding="{Binding CFICode}" Width="80"/>
+                            <DataGridTextColumn Header="IssueSize" Binding="{Binding IssueSize}" Width="90"/>
+                            <DataGridTextColumn Header="NominalCurrency" Binding="{Binding NominalCurrency}" Width="130"/>
+                            <DataGridTextColumn Header="USIndicator" Binding="{Binding USIndicator}" Width="100"/>
+                            <DataGridTextColumn Header="ExpiryDate" Binding="{Binding ExpiryDate}" Width="90"/>
+                            <DataGridTextColumn Header="VersionNumber" Binding="{Binding VersionNumber}" Width="120"/>
+                            <DataGridTextColumn Header="SettlementType" Binding="{Binding SettlementType}" Width="120"/>
+                            <DataGridTextColumn Header="OptionType" Binding="{Binding OptionType}" Width="90"/>
+                            <DataGridTextColumn Header="ExerciseType" Binding="{Binding ExerciseType}" Width="110"/>
+                            <DataGridTextColumn Header="ProductName" Binding="{Binding ProductName}" Width="120"/>
+                            <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="70"/>
+                            <DataGridTextColumn Header="InitialPhaseID" Binding="{Binding InitialPhaseID}" Width="110"/>
+                            <DataGridTextColumn Header="ThresholdMax" Binding="{Binding ThresholdMax, StringFormat=N8}" Width="110"/>
+                            <DataGridTextColumn Header="ThresholdMin" Binding="{Binding ThresholdMin, StringFormat=N8}" Width="110"/>
+                            <DataGridTextColumn Header="IsLeverage" Binding="{Binding IsLeverage}" Width="90"/>
+                            <DataGridTextColumn Header="NominalValue" Binding="{Binding NominalValue, StringFormat=N8}" Width="110"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
                 </Grid>
             </TabItem>
         </TabControl>
