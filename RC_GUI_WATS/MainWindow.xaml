@@ -6,6 +6,7 @@
         xmlns:local="clr-namespace:RC_GUI_WATS"
         xmlns:views="clr-namespace:RC_GUI_WATS.Views"
         mc:Ignorable="d"
+        Closing="Window_Closing"
         Title="RC GUI WATS" Height="600" Width="800">
     <Grid>
         <Grid.RowDefinitions>
