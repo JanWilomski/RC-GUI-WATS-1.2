@@ -1,13 +1,41 @@
-﻿using System.Configuration;
-using System.Data;
-using System.Windows;
+﻿using System.Windows;
+using RC_GUI_WATS.Services;
+using RC_GUI_WATS.ViewModels;
 
-namespace RC_GUI_WATS;
-
-/// <summary>
-/// Interaction logic for App.xaml
-/// </summary>
-public partial class App : Application
+namespace RC_GUI_WATS
 {
-}
+    public partial class App : Application
+    {
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            base.OnStartup(e);
 
+            // Setup dependency injection
+            ConfigureServices();
+        }
+
+        private void ConfigureServices()
+        {
+            // Create a simple service container
+            var configService = new ConfigurationService();
+            var clientService = new RcTcpClientService();
+            var positionsService = new PositionsService(clientService);
+            var capitalService = new CapitalService(clientService);
+            var limitsService = new LimitsService(clientService);
+            var instrumentsService = new InstrumentsService();
+
+            // Set up the main window with view model
+            var mainWindow = new MainWindow();
+            var mainViewModel = new MainWindowViewModel(
+                clientService,
+                positionsService,
+                capitalService,
+                limitsService,
+                instrumentsService,
+                configService);
+
+            mainWindow.DataContext = mainViewModel;
+            mainWindow.Show();
+        }
+    }
+}

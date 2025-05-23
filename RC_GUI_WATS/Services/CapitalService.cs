@@ -1,0 +1,153 @@
+﻿using System;
+using System.Text;
+using RC_GUI_WATS.Models;
+
+namespace RC_GUI_WATS.Services
+{
+    public class CapitalService
+    {
+        private RcTcpClientService _clientService;
+        private Capital _currentCapital = new Capital();
+
+        public Capital CurrentCapital => _currentCapital;
+
+        public event Action CapitalUpdated;
+
+        public CapitalService(RcTcpClientService clientService)
+        {
+            _clientService = clientService;
+            _clientService.MessageReceived += ProcessMessage;
+
+            // Initialize capital values
+            _currentCapital.MessagesPercentage = 0;
+            _currentCapital.MessagesLimit = 0;
+            _currentCapital.CapitalPercentage = 0;
+            _currentCapital.CapitalLimit = 0;
+        }
+
+        private void ProcessMessage(RcMessage message)
+        {
+            foreach (var block in message.Blocks)
+            {
+                if (block.Payload.Length > 0)
+                {
+                    char messageType = (char)block.Payload[0];
+                    
+                    if (messageType == 'C')
+                    {
+                        ProcessCapitalMessage(block.Payload);
+                    }
+                    else if (messageType == 'I' || messageType == 'W' || 
+                             messageType == 'D' || messageType == 'E')
+                    {
+                        // Process log messages for potential limit information
+                        if (block.Payload.Length >= 3)
+                        {
+                            ushort msgLength = BitConverter.ToUInt16(block.Payload, 1);
+                            if (block.Payload.Length >= 3 + msgLength)
+                            {
+                                string msg = Encoding.ASCII.GetString(block.Payload, 3, msgLength);
+                                TryExtractLimitsFromLog(msg);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private void ProcessCapitalMessage(byte[] payload)
+        {
+            if (payload.Length < 25)
+                return;
+
+            try
+            {
+                double openCapital = BitConverter.ToDouble(payload, 1);
+                double accruedCapital = BitConverter.ToDouble(payload, 9);
+                double totalCapital = BitConverter.ToDouble(payload, 17);
+
+                bool validValues = !double.IsNaN(openCapital) && !double.IsInfinity(openCapital) &&
+                                  !double.IsNaN(accruedCapital) && !double.IsInfinity(accruedCapital) &&
+                                  !double.IsNaN(totalCapital) && !double.IsInfinity(totalCapital);
+
+                if (validValues)
+                {
+                    _currentCapital.OpenCapital = openCapital;
+                    _currentCapital.AccruedCapital = accruedCapital;
+                    _currentCapital.TotalCapital = totalCapital;
+                    
+                    CapitalUpdated?.Invoke();
+                }
+            }
+            catch (Exception)
+            {
+                // Error handling
+            }
+        }
+
+        private void TryExtractLimitsFromLog(string message)
+        {
+            if ((message.Contains("%") || message.Contains("percent")) && message.Contains("of"))
+            {
+                try
+                {
+                    // Logic to extract percentage and limit values from log messages
+                    // (Simplified from original code)
+                    int percentIndex = message.IndexOf('%');
+                    if (percentIndex < 0)
+                    {
+                        percentIndex = message.IndexOf("percent");
+                        if (percentIndex < 0)
+                            return;
+                    }
+
+                    // Find the beginning of the number before %
+                    int i = percentIndex - 1;
+                    while (i >= 0 && (char.IsDigit(message[i]) || message[i] == '.'))
+                        i--;
+
+                    string percentText = message.Substring(i + 1, percentIndex - i - 1).Trim();
+                    double percent = double.Parse(percentText);
+
+                    // Find "of" and the number after it
+                    int ofIndex = message.IndexOf("of", percentIndex);
+                    if (ofIndex < 0)
+                        return;
+
+                    // Find start of number after "of"
+                    i = ofIndex + 2;
+                    while (i < message.Length && char.IsWhiteSpace(message[i]))
+                        i++;
+
+                    // Find end of number
+                    int j = i;
+                    while (j < message.Length && (char.IsDigit(message[j]) || message[j] == '.'))
+                        j++;
+
+                    string limitText = message.Substring(i, j - i).Trim();
+                    double limit = double.Parse(limitText);
+
+                    // Determine if it's about messages or capital
+                    if (message.Contains("message", StringComparison.OrdinalIgnoreCase) ||
+                        message.Contains("order", StringComparison.OrdinalIgnoreCase))
+                    {
+                        _currentCapital.MessagesPercentage = percent;
+                        _currentCapital.MessagesLimit = limit;
+                    }
+                    else if (message.Contains("capital", StringComparison.OrdinalIgnoreCase) ||
+                             message.Contains("position", StringComparison.OrdinalIgnoreCase))
+                    {
+                        _currentCapital.CapitalPercentage = percent;
+                        _currentCapital.CapitalLimit = limit;
+                    }
+
+                    CapitalUpdated?.Invoke();
+                }
+                catch
+                {
+                    // Handle parsing errors
+                }
+            }
+        }
+    }
+}

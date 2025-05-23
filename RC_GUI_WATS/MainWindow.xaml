@@ -4,9 +4,9 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:RC_GUI_WATS"
+        xmlns:views="clr-namespace:RC_GUI_WATS.Views"
         mc:Ignorable="d"
-        Title="RC GUI WATS" Height="600" Width="800"
-        Closing="Window_Closing">
+        Title="RC GUI WATS" Height="600" Width="800">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -14,321 +14,34 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         
-        <!-- Status połączenia -->
+        <!-- Connection status -->
         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="5">
             <TextBlock Text="Status połączenia: " VerticalAlignment="Center"/>
-            <TextBlock x:Name="ConnectionStatus" Text="Rozłączony" Foreground="Red" VerticalAlignment="Center"/>
-            <Button x:Name="ConnectButton" Content="Połącz" Margin="10,0,0,0" Padding="5,2" Click="ConnectButton_Click"/>
-            <Button x:Name="DisconnectButton" Content="Rozłącz" Margin="5,0,0,0" Padding="5,2" IsEnabled="False" Click="DisconnectButton_Click"/>
+            <TextBlock Text="{Binding ConnectionStatus}" Foreground="{Binding ConnectionStatusBrush}" VerticalAlignment="Center"/>
+            <Button Content="Połącz" Command="{Binding ConnectCommand}" Margin="10,0,0,0" Padding="5,2"/>
+            <Button Content="Rozłącz" Command="{Binding DisconnectCommand}" Margin="5,0,0,0" Padding="5,2"/>
         </StackPanel>
         
-        <!-- Zakładki -->
+        <!-- Tabs -->
         <TabControl Grid.Row="1" Margin="5">
             <TabItem Header="Messages">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-                    
-                    <!-- Panel Capital -->
-                    <Grid Grid.Row="0" Margin="5">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="250"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        
-                        <!-- Lewa strona - informacje o kapitale -->
-                        <Border BorderBrush="DarkGray" BorderThickness="1" Grid.Column="0">
-                            <Grid Margin="5">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                
-                                <!-- Nagłówek Capital -->
-                                <TextBlock Grid.Row="0" Grid.ColumnSpan="2" Text="Capital" FontWeight="Bold" Margin="0,0,0,5"/>
-                                
-                                <!-- Open Capital -->
-                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Open Capital:" Margin="0,0,10,0"/>
-                                <TextBlock Grid.Row="1" Grid.Column="1" x:Name="OpenCapitalTextBlock" Text="0.00" HorizontalAlignment="Right"/>
-                                
-                                <!-- Accrued Capital -->
-                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Accrued Capital:" Margin="0,0,10,0"/>
-                                <TextBlock Grid.Row="2" Grid.Column="1" x:Name="AccruedCapitalTextBlock" Text="0.00" HorizontalAlignment="Right"/>
-                                
-                                <!-- Total Capital -->
-                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Total Capital:" Margin="0,0,10,0"/>
-                                <TextBlock Grid.Row="3" Grid.Column="1" x:Name="TotalCapitalTextBlock" Text="0.00" HorizontalAlignment="Right"/>
-                                
-                                <!-- Limits -->
-                                <TextBlock Grid.Row="4" Grid.ColumnSpan="2" Text="Limits" FontWeight="Bold" Margin="0,10,0,5"/>
-                                
-                                <!-- Messages -->
-                                <TextBlock Grid.Row="5" Grid.Column="0" Text="Messages:" Margin="0,0,10,0"/>
-                                <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
-                                    <TextBlock x:Name="MessagesPercentageTextBlock" Text="0%" Foreground="Green"/>
-                                    <TextBlock Text=" of "/>
-                                    <TextBlock x:Name="MessagesLimitTextBlock" Text="0"/>
-                                </StackPanel>
-                                
-                                <!-- Capital -->
-                                <TextBlock Grid.Row="6" Grid.Column="0" Text="Capital:" Margin="0,0,10,0"/>
-                                <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
-                                    <TextBlock x:Name="CapitalPercentageTextBlock" Text="0%" Foreground="Green"/>
-                                    <TextBlock Text=" of "/>
-                                    <TextBlock x:Name="CapitalLimitTextBlock" Text="0"/>
-                                </StackPanel>
-                            </Grid>
-                        </Border>
-                    </Grid>
-                    
-                    <!-- Tabela pozycji -->
-                    <DataGrid Grid.Row="1" x:Name="PositionsDataGrid" AutoGenerateColumns="False" 
-                              CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True" Margin="5">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="#" Binding="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type DataGridRow}}, Path=Header}" Width="30"/>
-                            <DataGridTextColumn Header="ISIN" Binding="{Binding ISIN}" Width="120"/>
-                            <DataGridTextColumn Header="Ticker" Binding="{Binding Ticker}" Width="80"/>
-                            <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
-                            <DataGridTextColumn Header="Net" Binding="{Binding Net}" Width="60"/>
-                            <DataGridTextColumn Header="OpenLong" Binding="{Binding OpenLong}" Width="80"/>
-                            <DataGridTextColumn Header="OpenShort" Binding="{Binding OpenShort}" Width="80"/>
-                        </DataGrid.Columns>
-                    </DataGrid>
-                    
-                    <!-- Panel przycisków -->
-                    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Left" Margin="5">
-                        <Button x:Name="AllSwitchButton" Content="Kill switch" Background="Red" Foreground="White" 
-                                Padding="10,2" Margin="0,0,5,0" Click="AllSwitchButton_Click"/>
-                    </StackPanel>
-                </Grid>
+                <views:MessagesTabControl DataContext="{Binding MessagesTab}"/>
             </TabItem>
             <TabItem Header="Settings">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-                    
-                    <!-- Panel ustawień połączenia -->
-                    <GroupBox Grid.Row="0" Header="Ustawienia serwera" Margin="5">
-                        <StackPanel Margin="5">
-                            <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
-                                <TextBlock Text="IP:" Width="80" VerticalAlignment="Center"/>
-                                <TextBox x:Name="ServerIpTextBox" Text="172.31.136.7" Width="150"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
-                                <TextBlock Text="Port:" Width="80" VerticalAlignment="Center"/>
-                                <TextBox x:Name="ServerPortTextBox" Text="19083" Width="150"/>
-                            </StackPanel>
-                            <!--Button Content="Test Capital Update" Click="TestCapitalButton_Click" 
-                                    Margin="0,5,0,0" Padding="5,2" HorizontalAlignment="Left"/-->
-                        </StackPanel>
-                    </GroupBox>
-                    
-                    <!-- Panel limitów -->
-                    <Grid Grid.Row="1" Margin="5">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="*"/>
-                        </Grid.RowDefinitions>
-                        
-                        <!-- Przyciski -->
-                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,5">
-                            <Button x:Name="AddLimitButton" Content="Dodaj limit" Margin="0,0,5,0" 
-                                    Padding="5,2" Click="AddLimitButton_Click"/>
-                            <Button x:Name="RefreshLimitsButton" Content="Odśwież limity" Margin="0,0,5,0" 
-                                    Padding="5,2" Click="RefreshLimitsButton_Click"/>
-                            <Button x:Name="SaveLimitsButton" Content="Zapisz limity" Margin="0,0,5,0" 
-                                    Padding="5,2" Click="SaveLimitsButton_Click"/>
-                        </StackPanel>
-                        
-                        <!-- Tabela limitów -->
-                        <DataGrid Grid.Row="1" x:Name="LimitsDataGrid" AutoGenerateColumns="False" 
-                                CanUserAddRows="False" CanUserDeleteRows="False" 
-                                Margin="0,5,100,0" SelectionMode="Single">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="Zakres" Binding="{Binding DisplayName}" Width="150" IsReadOnly="True"/>
-                                <DataGridTextColumn Header="Typ" Binding="{Binding Name}" Width="120" IsReadOnly="True"/>
-                                <DataGridTextColumn Header="Wartość" Binding="{Binding Value}" Width="*" IsReadOnly="True"/>
-                                <!--DataGridTemplateColumn Width="Auto">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <StackPanel Orientation="Horizontal">
-                                                <Button Content="Zastosuj" Click="ApplyLimitButton_Click" 
-                                                        Margin="2" Padding="5,2"/>
-                                                <Button Content="Usuń" Click="RemoveLimitButton_Click" 
-                                                        Margin="2" Padding="5,2"/>
-                                            </StackPanel>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn-->
-                            </DataGrid.Columns>
-                        </DataGrid>
-                    </Grid>
-                    
-                    <!-- Panel szybkiej zmiany limitów -->
-                    <GroupBox Grid.Row="2" Header="Szybka zmiana limitów" Margin="5">
-                        <Grid Margin="5">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            
-                            <!-- Zakres -->
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Zakres:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                            <ComboBox Grid.Row="0" Grid.Column="1" x:Name="QuickScopeTypeComboBox" Margin="0,5"
-                                    SelectionChanged="QuickScopeTypeComboBox_SelectionChanged">
-                                <ComboBoxItem Content="Wszystkie instrumenty"/>
-                                <ComboBoxItem Content="Grupa instrumentów"/>
-                                <ComboBoxItem Content="Pojedynczy instrument"/>
-                            </ComboBox>
-                            
-                            <!-- Wartość zakresu -->
-                            <TextBlock Grid.Row="0" Grid.Column="2" Text="Wartość:" VerticalAlignment="Center" Margin="5,0"/>
-                            <TextBox Grid.Row="0" Grid.Column="3" x:Name="QuickScopeValueTextBox" Margin="0,5"/>
-                            
-                            <!-- Typ limitu -->
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Typ limitu:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                            <ComboBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" x:Name="QuickLimitTypeComboBox" Margin="0,5">
-                                <ComboBoxItem Content="halt"/>
-                                <ComboBoxItem Content="maxOrderRate"/>
-                                <ComboBoxItem Content="maxTransaction"/>
-                                <ComboBoxItem Content="maxAbsShares"/>
-                                <ComboBoxItem Content="maxShortShares"/>
-                            </ComboBox>
-                            
-                            <!-- Wartość limitu -->
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Wartość limitu:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                            <TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" x:Name="QuickLimitValueTextBox" Margin="0,5"/>
-                            
-                            <!-- Przycisk Zastosuj -->
-                            <Button Grid.Row="0" Grid.Column="4" Grid.RowSpan="3" Content="Zastosuj" 
-                                    Margin="5" Padding="10,5" Click="ApplyQuickLimitButton_Click"/>
-                        </Grid>
-                    </GroupBox>
-                    
-                    <!-- Panel logów (dla debugowania) -->
-                    <GroupBox Grid.Row="3" Header="Log komunikacji (for debugging)" Margin="5" Height="150">
-                        <TextBox x:Name="RawMessagesTextBox" IsReadOnly="True" TextWrapping="Wrap" 
-                                VerticalScrollBarVisibility="Auto" FontFamily="Consolas" FontSize="11"/>
-                    </GroupBox>
-                </Grid>
+                <views:SettingsTabControl DataContext="{Binding SettingsTab}"/>
             </TabItem>
             <TabItem Header="Filters">
-                <Grid>
-                    <TextBlock Text="Tutaj pojawią się filtry" VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                </Grid>
+                <views:FiltersTabControl DataContext="{Binding FiltersTab}"/>
             </TabItem>
             <TabItem Header="Instruments">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    
-                    <!-- Control panel with Source file button -->
-                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="5">
-                        <Button x:Name="SelectInstrumentsFileButton" Content="Source file" 
-                                Padding="5,2" Margin="0,0,5,0" Click="SelectInstrumentsFileButton_Click"/>
-                        <TextBlock x:Name="InstrumentsFilePathText" Text="No file selected" 
-                                VerticalAlignment="Center" Margin="5,0,0,0"/>
-                    </StackPanel>
-                    
-                    <!-- Instruments DataGrid -->
-                    <DataGrid Grid.Row="1" x:Name="InstrumentsDataGrid" AutoGenerateColumns="False" 
-                            CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True" 
-                            Margin="5" AlternatingRowBackground="AliceBlue" GridLinesVisibility="All">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="#" Binding="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type DataGridRow}}, Path=Header}" Width="40"/>
-                            <DataGridTextColumn Header="InstrumentID" Binding="{Binding InstrumentID}" Width="90"/>
-                            <DataGridTextColumn Header="ISIN" Binding="{Binding ISIN}" Width="120"/>
-                            <DataGridTextColumn Header="ProductCode" Binding="{Binding ProductCode}" Width="100"/>
-                            <DataGridTextColumn Header="ReferencePrice" Binding="{Binding ReferencePrice, StringFormat=N8}" Width="120"/>
-                            <DataGridTextColumn Header="Multiplier" Binding="{Binding Multiplier, StringFormat=N8}" Width="90"/>
-                            <DataGridTextColumn Header="MIC" Binding="{Binding MIC}" Width="70"/>
-                            <DataGridTextColumn Header="InstrumentTypeID" Binding="{Binding InstrumentTypeID}" Width="120"/>
-                            <DataGridTextColumn Header="InstrumentType" Binding="{Binding InstrumentType}" Width="120"/>
-                            <DataGridTextColumn Header="InstrumentSubtypeID" Binding="{Binding InstrumentSubtypeID}" Width="140"/>
-                            <DataGridTextColumn Header="InstrumentSubtype" Binding="{Binding InstrumentSubtype}" Width="140"/>
-                            <DataGridTextColumn Header="MarketStructureID" Binding="{Binding MarketStructureID}" Width="130"/>
-                            <DataGridTextColumn Header="MarketStructureName" Binding="{Binding MarketStructureName}" Width="160"/>
-                            <DataGridTextColumn Header="Currency" Binding="{Binding Currency}" Width="80"/>
-                            <DataGridTextColumn Header="CollarGroupId" Binding="{Binding CollarGroupId}" Width="110"/>
-                            <DataGridTextColumn Header="OrderStaticCollarModeId" Binding="{Binding OrderStaticCollarModeId}" Width="170"/>
-                            <DataGridTextColumn Header="OrderStaticCollarMode" Binding="{Binding OrderStaticCollarMode}" Width="170"/>
-                            <DataGridTextColumn Header="OrderStaticCollarExpressionTypeId" Binding="{Binding OrderStaticCollarExpressionTypeId}" Width="220"/>
-                            <DataGridTextColumn Header="OrderStaticCollarExpressionType" Binding="{Binding OrderStaticCollarExpressionType}" Width="220"/>
-                            <DataGridTextColumn Header="OrderStaticCollarLowerBound" Binding="{Binding OrderStaticCollarLowerBound, StringFormat=N8}" Width="200"/>
-                            <DataGridTextColumn Header="OrderStaticCollarValue" Binding="{Binding OrderStaticCollarValue, StringFormat=N8}" Width="170"/>
-                            <DataGridTextColumn Header="OrderStaticCollarLowerBid" Binding="{Binding OrderStaticCollarLowerBid, StringFormat=N8}" Width="190"/>
-                            <DataGridTextColumn Header="OrderStaticCollarUpperBid" Binding="{Binding OrderStaticCollarUpperBid, StringFormat=N8}" Width="190"/>
-                            <DataGridTextColumn Header="OrderStaticCollarUpperAsk" Binding="{Binding OrderStaticCollarUpperAsk, StringFormat=N8}" Width="190"/>
-                            <DataGridTextColumn Header="OrderStaticCollarLowerAsk" Binding="{Binding OrderStaticCollarLowerAsk, StringFormat=N8}" Width="190"/>
-                            <DataGridTextColumn Header="FirstTradingDate" Binding="{Binding FirstTradingDate, StringFormat=d}" Width="120"/>
-                            <DataGridTextColumn Header="LastTradingDate" Binding="{Binding LastTradingDate, StringFormat=d}" Width="120"/>
-                            <DataGridTextColumn Header="ProductID" Binding="{Binding ProductID}" Width="90"/>
-                            <DataGridTextColumn Header="LotSize" Binding="{Binding LotSize}" Width="80"/>
-                            <DataGridTextColumn Header="PriceExpressionType" Binding="{Binding PriceExpressionType}" Width="150"/>
-                            <DataGridTextColumn Header="CalendarID" Binding="{Binding CalendarID}" Width="90"/>
-                            <DataGridTextColumn Header="TickTableID" Binding="{Binding TickTableID}" Width="90"/>
-                            <DataGridTextColumn Header="TradingScheduleID" Binding="{Binding TradingScheduleID}" Width="130"/>
-                            <DataGridTextColumn Header="NominalValueType" Binding="{Binding NominalValueType}" Width="130"/>
-                            <DataGridTextColumn Header="StrikePrice" Binding="{Binding StrikePrice, StringFormat=N8}" Width="100"/>
-                            <DataGridTextColumn Header="SettlementCalendarID" Binding="{Binding SettlementCalendarID}" Width="150"/>
-                            <DataGridTextColumn Header="BondCouponType" Binding="{Binding BondCouponType}" Width="130"/>
-                            <DataGridTextColumn Header="Liquidity" Binding="{Binding Liquidity}" Width="80"/>
-                            <DataGridTextColumn Header="MarketModelTypeID" Binding="{Binding MarketModelTypeID}" Width="140"/>
-                            <DataGridTextColumn Header="MarketModelType" Binding="{Binding MarketModelType}" Width="130"/>
-                            <DataGridTextColumn Header="IssuerRegCountry" Binding="{Binding IssuerRegCountry}" Width="130"/>
-                            <DataGridTextColumn Header="UnderlyingInstrumentID" Binding="{Binding UnderlyingInstrumentID}" Width="160"/>
-                            <DataGridTextColumn Header="CFICode" Binding="{Binding CFICode}" Width="80"/>
-                            <DataGridTextColumn Header="IssueSize" Binding="{Binding IssueSize}" Width="90"/>
-                            <DataGridTextColumn Header="NominalCurrency" Binding="{Binding NominalCurrency}" Width="130"/>
-                            <DataGridTextColumn Header="USIndicator" Binding="{Binding USIndicator}" Width="100"/>
-                            <DataGridTextColumn Header="ExpiryDate" Binding="{Binding ExpiryDate}" Width="90"/>
-                            <DataGridTextColumn Header="VersionNumber" Binding="{Binding VersionNumber}" Width="120"/>
-                            <DataGridTextColumn Header="SettlementType" Binding="{Binding SettlementType}" Width="120"/>
-                            <DataGridTextColumn Header="OptionType" Binding="{Binding OptionType}" Width="90"/>
-                            <DataGridTextColumn Header="ExerciseType" Binding="{Binding ExerciseType}" Width="110"/>
-                            <DataGridTextColumn Header="ProductName" Binding="{Binding ProductName}" Width="120"/>
-                            <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="70"/>
-                            <DataGridTextColumn Header="InitialPhaseID" Binding="{Binding InitialPhaseID}" Width="110"/>
-                            <DataGridTextColumn Header="ThresholdMax" Binding="{Binding ThresholdMax, StringFormat=N8}" Width="110"/>
-                            <DataGridTextColumn Header="ThresholdMin" Binding="{Binding ThresholdMin, StringFormat=N8}" Width="110"/>
-                            <DataGridTextColumn Header="IsLeverage" Binding="{Binding IsLeverage}" Width="90"/>
-                            <DataGridTextColumn Header="NominalValue" Binding="{Binding NominalValue, StringFormat=N8}" Width="110"/>
-                        </DataGrid.Columns>
-                    </DataGrid>
-                </Grid>
+                <views:InstrumentsTabControl DataContext="{Binding InstrumentsTab}"/>
             </TabItem>
         </TabControl>
         
         <!-- Status bar -->
         <StatusBar Grid.Row="2">
             <StatusBarItem>
-                <TextBlock x:Name="StatusBarText" Text="Gotowy"/>
+                <TextBlock Text="{Binding StatusBarText}"/>
             </StatusBarItem>
         </StatusBar>
     </Grid>
