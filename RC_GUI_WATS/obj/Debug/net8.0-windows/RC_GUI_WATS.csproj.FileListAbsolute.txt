@@ -55,3 +55,5 @@ C:\Users\janwil\Documents\RC GUI WATS 1.2\RC_GUI_WATS\obj\Debug\net8.0-windows\V
 C:\Users\janwil\Documents\RC GUI WATS 1.2\RC_GUI_WATS\obj\Debug\net8.0-windows\Views\FiltersTabControl.g.cs
 C:\Users\janwil\Documents\RC GUI WATS 1.2\RC_GUI_WATS\obj\Debug\net8.0-windows\Views\InstrumentsTabControl.g.cs
 C:\Users\janwil\Documents\RC GUI WATS 1.2\RC_GUI_WATS\obj\Debug\net8.0-windows\Views\SettingsTabControl.g.cs
+C:\Users\janwil\Documents\RC GUI WATS 1.2\RC_GUI_WATS\obj\Debug\net8.0-windows\Views\HeartbeatIndicatorControl.baml
+C:\Users\janwil\Documents\RC GUI WATS 1.2\RC_GUI_WATS\obj\Debug\net8.0-windows\Views\HeartbeatIndicatorControl.g.cs

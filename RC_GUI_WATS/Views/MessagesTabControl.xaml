@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:views="clr-namespace:RC_GUI_WATS.Views"
              mc:Ignorable="d">
     <Grid>
         <Grid.RowDefinitions>
@@ -16,6 +17,7 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="250"/>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             
             <!-- Left side - capital information -->
@@ -71,6 +73,12 @@
                     </StackPanel>
                 </Grid>
             </Border>
+            
+            <!-- Heartbeat indicator in the top right -->
+            <StackPanel Grid.Column="2" VerticalAlignment="Top" Margin="10,0,0,0">
+                <TextBlock Text="RC Server Status:" FontSize="11" Margin="0,0,0,2" Foreground="Gray"/>
+                <views:HeartbeatIndicatorControl DataContext="{Binding HeartbeatIndicator}"/>
+            </StackPanel>
         </Grid>
         
         <!-- Positions DataGrid -->

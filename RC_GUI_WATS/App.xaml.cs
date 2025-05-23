@@ -23,6 +23,9 @@ namespace RC_GUI_WATS
             var capitalService = new CapitalService(clientService);
             var limitsService = new LimitsService(clientService);
             var instrumentsService = new InstrumentsService();
+            
+            // Create heartbeat monitor service
+            var heartbeatMonitorService = new HeartbeatMonitorService(clientService);
 
             // Set up the main window with view model
             var mainWindow = new MainWindow();
@@ -32,7 +35,8 @@ namespace RC_GUI_WATS
                 capitalService,
                 limitsService,
                 instrumentsService,
-                configService);
+                configService,  
+                heartbeatMonitorService); // Add heartbeat monitor to constructor
 
             mainWindow.DataContext = mainViewModel;
             mainWindow.Show();

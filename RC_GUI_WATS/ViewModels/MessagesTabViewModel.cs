@@ -1,6 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using RC_GUI_WATS.Models;
 using RC_GUI_WATS.Services;
+using RC_GUI_WATS.Commands;
 using System.Windows.Media;
 
 namespace RC_GUI_WATS.ViewModels
@@ -10,10 +11,14 @@ namespace RC_GUI_WATS.ViewModels
         private readonly RcTcpClientService _clientService;
         private readonly PositionsService _positionsService;
         private readonly CapitalService _capitalService;
+        private readonly HeartbeatMonitorService _heartbeatMonitor;
         
         // Properties for binding
         public ObservableCollection<Position> Positions => _positionsService.Positions;
         public Capital CurrentCapital => _capitalService.CurrentCapital;
+        
+        // Heartbeat indicator
+        public HeartbeatIndicatorViewModel HeartbeatIndicator { get; }
         
         // UI properties
         private string _openCapitalText;
@@ -51,19 +56,35 @@ namespace RC_GUI_WATS.ViewModels
             set => SetProperty(ref _messagesPercentageBrush, value);
         }
         
-        // Similar properties for other UI elements
+        private Brush _capitalPercentageBrush;
+        public Brush CapitalPercentageBrush
+        {
+            get => _capitalPercentageBrush;
+            set => SetProperty(ref _capitalPercentageBrush, value);
+        }
+        
+        // Commands
+        public RelayCommand AllSwitchCommand { get; }
         
         public MessagesTabViewModel(
             RcTcpClientService clientService,
             PositionsService positionsService,
-            CapitalService capitalService)
+            CapitalService capitalService,
+            HeartbeatMonitorService heartbeatMonitor)
         {
             _clientService = clientService;
             _positionsService = positionsService;
             _capitalService = capitalService;
+            _heartbeatMonitor = heartbeatMonitor;
+            
+            // Create heartbeat indicator view model
+            HeartbeatIndicator = new HeartbeatIndicatorViewModel(_heartbeatMonitor);
             
             // Subscribe to capital updates
             _capitalService.CapitalUpdated += UpdateCapitalDisplay;
+            
+            // Initialize commands
+            AllSwitchCommand = new RelayCommand(AllSwitchButtonClick);
             
             // Initialize display
             UpdateCapitalDisplay();
@@ -76,10 +97,9 @@ namespace RC_GUI_WATS.ViewModels
             TotalCapitalText = CurrentCapital.TotalCapital.ToString("0.00");
             
             MessagesPercentageText = $"{CurrentCapital.MessagesPercentage}%";
-            // Update other UI properties
-            
             MessagesPercentageBrush = GetBrushForPercentage(CurrentCapital.MessagesPercentage);
-            // Update other brushes
+            
+            CapitalPercentageBrush = GetBrushForPercentage(CurrentCapital.CapitalPercentage);
         }
         
         private Brush GetBrushForPercentage(double percentage)

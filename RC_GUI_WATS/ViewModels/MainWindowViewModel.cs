@@ -10,6 +10,7 @@ namespace RC_GUI_WATS.ViewModels
     {
         private readonly RcTcpClientService _clientService;
         private readonly ConfigurationService _configService;
+        private readonly HeartbeatMonitorService _heartbeatMonitorService;
         
         // ServerIP i ServerPort z ConfigurationService
         private string _serverIp;
@@ -64,17 +65,19 @@ namespace RC_GUI_WATS.ViewModels
             CapitalService capitalService,
             LimitsService limitsService,
             InstrumentsService instrumentsService,
-            ConfigurationService configService)
+            ConfigurationService configService,
+            HeartbeatMonitorService heartbeatMonitorService)
         {
             _clientService = clientService;
             _configService = configService;
+            _heartbeatMonitorService = heartbeatMonitorService;
             
             // Załaduj wartości z konfiguracji
             _serverIp = _configService.ServerIP;
             _serverPort = _configService.ServerPort.ToString();
             
-            // Initialize tab ViewModels
-            MessagesTab = new MessagesTabViewModel(clientService, positionsService, capitalService);
+            // Initialize tab ViewModels - pass heartbeat monitor to MessagesTab
+            MessagesTab = new MessagesTabViewModel(clientService, positionsService, capitalService, heartbeatMonitorService);
             SettingsTab = new SettingsTabViewModel(clientService, limitsService, configService, _serverIp, _serverPort);
             FiltersTab = new FiltersTabViewModel();
             InstrumentsTab = new InstrumentsTabViewModel(instrumentsService, _configService.InstrumentsFilePath);

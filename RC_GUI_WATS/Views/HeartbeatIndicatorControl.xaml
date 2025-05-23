@@ -1,0 +1,32 @@
+﻿<UserControl x:Class="RC_GUI_WATS.Views.HeartbeatIndicatorControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" 
+             d:DesignHeight="30" d:DesignWidth="150">
+    <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="3" Padding="5,2">
+        <StackPanel Orientation="Horizontal">
+            <!-- Status indicator circle -->
+            <Ellipse Width="12" Height="12" 
+                     Fill="{Binding StatusBrush}" 
+                     Stroke="DarkGray" 
+                     StrokeThickness="1"
+                     VerticalAlignment="Center"
+                     Margin="0,0,5,0"/>
+            
+            <!-- Status text -->
+            <TextBlock Text="{Binding StatusText}" 
+                       VerticalAlignment="Center"
+                       FontSize="11"
+                       Foreground="{Binding StatusBrush}"/>
+            
+            <!-- Last heartbeat time -->
+            <TextBlock Text="{Binding LastHeartbeatText}" 
+                       VerticalAlignment="Center"
+                       FontSize="10"
+                       Foreground="Gray"
+                       Margin="5,0,0,0"/>
+        </StackPanel>
+    </Border>
+</UserControl>
