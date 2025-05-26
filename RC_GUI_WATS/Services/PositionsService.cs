@@ -1,8 +1,11 @@
-﻿using System;
+﻿// Services/PositionsService.cs
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
+using System.Windows;
+using System.Windows.Threading;
 using RC_GUI_WATS.Models;
 
 namespace RC_GUI_WATS.Services
@@ -12,6 +15,7 @@ namespace RC_GUI_WATS.Services
         private RcTcpClientService _clientService;
         private Dictionary<string, Position> _positionsByIsin = new Dictionary<string, Position>();
         private ObservableCollection<Position> _positions = new ObservableCollection<Position>();
+        private readonly Dispatcher _dispatcher;
 
         public ObservableCollection<Position> Positions => _positions;
 
@@ -19,6 +23,7 @@ namespace RC_GUI_WATS.Services
         {
             _clientService = clientService;
             _clientService.MessageReceived += ProcessMessage;
+            _dispatcher = Application.Current.Dispatcher;
         }
 
         private void ProcessMessage(RcMessage message)
@@ -45,34 +50,38 @@ namespace RC_GUI_WATS.Services
             if (string.IsNullOrWhiteSpace(isin))
                 return;
 
-            bool isUpdated = false;
-            
-            if (_positionsByIsin.TryGetValue(isin, out Position existingPosition))
+            // Update positions on UI thread
+            _dispatcher.Invoke(() =>
             {
-                if (existingPosition.Net != net || existingPosition.OpenLong != openLong || existingPosition.OpenShort != openShort)
+                bool isUpdated = false;
+                
+                if (_positionsByIsin.TryGetValue(isin, out Position existingPosition))
                 {
-                    existingPosition.Net = net;
-                    existingPosition.OpenLong = openLong;
-                    existingPosition.OpenShort = openShort;
+                    if (existingPosition.Net != net || existingPosition.OpenLong != openLong || existingPosition.OpenShort != openShort)
+                    {
+                        existingPosition.Net = net;
+                        existingPosition.OpenLong = openLong;
+                        existingPosition.OpenShort = openShort;
+                        isUpdated = true;
+                    }
+                }
+                else
+                {
+                    var newPosition = new Position
+                    {
+                        ISIN = isin,
+                        Ticker = GetTickerFromIsin(isin),
+                        Name = GetNameFromIsin(isin),
+                        Net = net,
+                        OpenLong = openLong,
+                        OpenShort = openShort
+                    };
+
+                    _positions.Add(newPosition);
+                    _positionsByIsin[isin] = newPosition;
                     isUpdated = true;
                 }
-            }
-            else
-            {
-                var newPosition = new Position
-                {
-                    ISIN = isin,
-                    Ticker = GetTickerFromIsin(isin),
-                    Name = GetNameFromIsin(isin),
-                    Net = net,
-                    OpenLong = openLong,
-                    OpenShort = openShort
-                };
-
-                _positions.Add(newPosition);
-                _positionsByIsin[isin] = newPosition;
-                isUpdated = true;
-            }
+            });
         }
 
         private string GetTickerFromIsin(string isin)
@@ -101,8 +110,11 @@ namespace RC_GUI_WATS.Services
 
         public void Clear()
         {
-            _positions.Clear();
-            _positionsByIsin.Clear();
+            _dispatcher.Invoke(() =>
+            {
+                _positions.Clear();
+                _positionsByIsin.Clear();
+            });
         }
     }
 }

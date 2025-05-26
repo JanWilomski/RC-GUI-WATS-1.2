@@ -8,7 +8,9 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="2*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="3*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         
@@ -96,8 +98,44 @@
             </DataGrid.Columns>
         </DataGrid>
         
+        <!-- CCG Messages Header -->
+        <Grid Grid.Row="2" Margin="5,10,5,5">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            
+            <TextBlock Grid.Column="0" Text="CCG Messages" FontWeight="Bold" FontSize="14" VerticalAlignment="Center"/>
+            <Button Grid.Column="1" Content="Rewind" Command="{Binding RewindCommand}"
+                    Padding="10,2" Margin="5,0"/>
+            <Button Grid.Column="2" Content="Clear" Command="{Binding ClearCcgMessagesCommand}"
+                    Padding="10,2" Margin="5,0,0,0"/>
+        </Grid>
+        
+        <!-- CCG Messages DataGrid -->
+        <DataGrid Grid.Row="3" AutoGenerateColumns="False" 
+                  ItemsSource="{Binding CcgMessages}"
+                  CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True" 
+                  Margin="5" AlternatingRowBackground="AliceBlue" 
+                  GridLinesVisibility="All" FontFamily="Consolas" FontSize="10"
+                  LoadingRow="CcgDataGrid_LoadingRow" HeadersVisibility="All">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Type" Binding="{Binding TypeIndicator}" Width="40"/>
+                <DataGridTextColumn Header="Header" Binding="{Binding Header}" Width="150"/>
+                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="120"/>
+                <DataGridTextColumn Header="MsgSeqNum" Binding="{Binding MsgSeqNum}" Width="80"/>
+                <DataGridTextColumn Header="Date Received" Binding="{Binding DateReceivedString}" Width="130"/>
+                <DataGridTextColumn Header="Transact Time" Binding="{Binding TransactTimeString}" Width="90"/>
+                <DataGridTextColumn Header="Price" Binding="{Binding PriceString}" Width="100"/>
+                <DataGridTextColumn Header="Side" Binding="{Binding Side}" Width="50"/>
+                <DataGridTextColumn Header="Symbol(ISIN)" Binding="{Binding Symbol}" Width="120"/>
+                <DataGridTextColumn Header="ClientOrderID" Binding="{Binding ClientOrderID}" Width="120"/>
+            </DataGrid.Columns>
+        </DataGrid>
+        
         <!-- Buttons panel -->
-        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Left" Margin="5">
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Left" Margin="5">
             <Button Content="Kill switch" Background="Red" Foreground="White" 
                     Command="{Binding AllSwitchCommand}"
                     Padding="10,2" Margin="0,0,5,0"/>

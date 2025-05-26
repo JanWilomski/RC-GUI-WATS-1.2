@@ -8,6 +8,10 @@
         mc:Ignorable="d"
         Closing="Window_Closing"
         Title="RC GUI WATS" Height="600" Width="800">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    </Window.Resources>
+    
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -16,12 +20,31 @@
         </Grid.RowDefinitions>
         
         <!-- Connection status -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="5">
-            <TextBlock Text="Status połączenia: " VerticalAlignment="Center"/>
-            <TextBlock Text="{Binding ConnectionStatus}" Foreground="{Binding ConnectionStatusBrush}" VerticalAlignment="Center"/>
-            <Button Content="Połącz" Command="{Binding ConnectCommand}" Margin="10,0,0,0" Padding="5,2"/>
-            <Button Content="Rozłącz" Command="{Binding DisconnectCommand}" Margin="5,0,0,0" Padding="5,2"/>
-        </StackPanel>
+        <Grid Grid.Row="0" Margin="5">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            
+            <!-- Left side - connection status -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="Status połączenia: " VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding ConnectionStatus}" VerticalAlignment="Center"/>
+                <Button Content="Połącz" Command="{Binding ConnectCommand}" Margin="10,0,0,0" Padding="5,2"/>
+                <Button Content="Rozłącz" Command="{Binding DisconnectCommand}" Margin="5,0,0,0" Padding="5,2"/>
+                <Button Content="Rewind CCG" Command="{Binding RewindCommand}" Margin="5,0,0,0" Padding="5,2"/>
+            </StackPanel>
+            
+            <!-- Right side - loading indicator -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <ProgressBar Width="100" Height="16" IsIndeterminate="{Binding IsLoadingHistoricalData}" 
+                           Visibility="{Binding IsLoadingHistoricalData, Converter={StaticResource BooleanToVisibilityConverter}}"
+                           Margin="0,0,10,0"/>
+                <TextBlock Text="Ładowanie danych historycznych..." 
+                          Visibility="{Binding IsLoadingHistoricalData, Converter={StaticResource BooleanToVisibilityConverter}}"
+                          FontSize="10" Foreground="Gray" VerticalAlignment="Center"/>
+            </StackPanel>
+        </Grid>
         
         <!-- Tabs -->
         <TabControl Grid.Row="1" Margin="5">

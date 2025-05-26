@@ -1,5 +1,8 @@
-﻿using System;
+﻿// Services/CapitalService.cs
+using System;
 using System.Text;
+using System.Windows;
+using System.Windows.Threading;
 using RC_GUI_WATS.Models;
 
 namespace RC_GUI_WATS.Services
@@ -8,6 +11,7 @@ namespace RC_GUI_WATS.Services
     {
         private RcTcpClientService _clientService;
         private Capital _currentCapital = new Capital();
+        private readonly Dispatcher _dispatcher;
 
         public Capital CurrentCapital => _currentCapital;
 
@@ -17,6 +21,7 @@ namespace RC_GUI_WATS.Services
         {
             _clientService = clientService;
             _clientService.MessageReceived += ProcessMessage;
+            _dispatcher = Application.Current.Dispatcher;
 
             // Initialize capital values
             _currentCapital.MessagesPercentage = 0;
@@ -72,11 +77,15 @@ namespace RC_GUI_WATS.Services
 
                 if (validValues)
                 {
-                    _currentCapital.OpenCapital = openCapital;
-                    _currentCapital.AccruedCapital = accruedCapital;
-                    _currentCapital.TotalCapital = totalCapital;
-                    
-                    CapitalUpdated?.Invoke();
+                    // Update capital values and notify on UI thread
+                    _dispatcher.Invoke(() =>
+                    {
+                        _currentCapital.OpenCapital = openCapital;
+                        _currentCapital.AccruedCapital = accruedCapital;
+                        _currentCapital.TotalCapital = totalCapital;
+                        
+                        CapitalUpdated?.Invoke();
+                    });
                 }
             }
             catch (Exception)
@@ -127,21 +136,25 @@ namespace RC_GUI_WATS.Services
                     string limitText = message.Substring(i, j - i).Trim();
                     double limit = double.Parse(limitText);
 
-                    // Determine if it's about messages or capital
-                    if (message.Contains("message", StringComparison.OrdinalIgnoreCase) ||
-                        message.Contains("order", StringComparison.OrdinalIgnoreCase))
+                    // Update limits on UI thread
+                    _dispatcher.Invoke(() =>
                     {
-                        _currentCapital.MessagesPercentage = percent;
-                        _currentCapital.MessagesLimit = limit;
-                    }
-                    else if (message.Contains("capital", StringComparison.OrdinalIgnoreCase) ||
-                             message.Contains("position", StringComparison.OrdinalIgnoreCase))
-                    {
-                        _currentCapital.CapitalPercentage = percent;
-                        _currentCapital.CapitalLimit = limit;
-                    }
+                        // Determine if it's about messages or capital
+                        if (message.Contains("message", StringComparison.OrdinalIgnoreCase) ||
+                            message.Contains("order", StringComparison.OrdinalIgnoreCase))
+                        {
+                            _currentCapital.MessagesPercentage = percent;
+                            _currentCapital.MessagesLimit = limit;
+                        }
+                        else if (message.Contains("capital", StringComparison.OrdinalIgnoreCase) ||
+                                 message.Contains("position", StringComparison.OrdinalIgnoreCase))
+                        {
+                            _currentCapital.CapitalPercentage = percent;
+                            _currentCapital.CapitalLimit = limit;
+                        }
 
-                    CapitalUpdated?.Invoke();
+                        CapitalUpdated?.Invoke();
+                    });
                 }
                 catch
                 {
