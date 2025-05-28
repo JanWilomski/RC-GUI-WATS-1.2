@@ -159,7 +159,7 @@
             <DataGrid Grid.Row="1" AutoGenerateColumns="False" 
                       ItemsSource="{Binding CcgMessages}"
                       CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True"
-                      AlternatingRowBackground="AliceBlue" GridLinesVisibility="All"
+                      GridLinesVisibility="All"
                       FontSize="10" RowHeight="20">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Header" Binding="{Binding Header}" Width="50">
@@ -215,26 +215,82 @@
                 <!-- Row styling based on message type -->
                 <DataGrid.RowStyle>
                     <Style TargetType="DataGridRow">
+                        <!-- Default background for alternating rows -->
+                        <Setter Property="Background" Value="White"/>
                         <Setter Property="ToolTip" Value="{Binding RawDataHex}"/>
                         <Style.Triggers>
-                            <DataTrigger Binding="{Binding Name}" Value="OrderAdd">
-                                <Setter Property="Background" Value="LightGreen"/>
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding Name}" Value="Trade">
-                                <Setter Property="Background" Value="LightBlue"/>
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding Name}" Value="OrderCancel">
-                                <Setter Property="Background" Value="LightCoral"/>
-                            </DataTrigger>
+                            <!-- Mouse over effect -->
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#F0F0F0"/>
+                            </Trigger>
+                            
+                            <!-- Error messages - highest priority -->
                             <DataTrigger Binding="{Binding Header}" Value="ERROR">
                                 <Setter Property="Background" Value="Yellow"/>
+                                <Setter Property="FontWeight" Value="Bold"/>
                             </DataTrigger>
-                            <!-- Highlight suspicious Login messages -->
+                            
+                            <!-- OrderAdd - bright green -->
+                            <DataTrigger Binding="{Binding Name}" Value="OrderAdd">
+                                <Setter Property="Background" Value="LawnGreen"/>
+                                <!-- <Setter Property="FontWeight" Value="SemiBold"/> -->
+                            </DataTrigger>
+                            
+                            <!-- OrderAddResponse - light green -->
+                            <DataTrigger Binding="{Binding Name}" Value="OrderAddResponse">
+                                <Setter Property="Background" Value="#98FB98"/>
+                            </DataTrigger>
+                            
+                            <!-- Trade - light blue -->
+                            <DataTrigger Binding="{Binding Name}" Value="Trade">
+                                <Setter Property="Background" Value="#ADD8E6"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </DataTrigger>
+                            
+                            <!-- Cancel messages - light coral -->
+                            <DataTrigger Binding="{Binding Name}" Value="OrderCancel">
+                                <Setter Property="Background" Value="#F08080"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Name}" Value="OrderCancelResponse">
+                                <Setter Property="Background" Value="#F08080"/>
+                            </DataTrigger>
+                            
+                            <!-- Modify messages - light yellow -->
+                            <DataTrigger Binding="{Binding Name}" Value="OrderModify">
+                                <Setter Property="Background" Value="#FFFFE0"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Name}" Value="OrderModifyResponse">
+                                <Setter Property="Background" Value="#FFFFE0"/>
+                            </DataTrigger>
+                            
+                            <!-- Mass Cancel messages - darker coral -->
+                            <DataTrigger Binding="{Binding Name}" Value="OrderMassCancel">
+                                <Setter Property="Background" Value="#FFB6C1"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Name}" Value="OrderMassCancelResponse">
+                                <Setter Property="Background" Value="#FFB6C1"/>
+                            </DataTrigger>
+                            
+                            <!-- Reject - pink -->
+                            <DataTrigger Binding="{Binding Name}" Value="Reject">
+                                <Setter Property="Background" Value="#FFC0CB"/>
+                                <Setter Property="FontWeight" Value="Bold"/>
+                            </DataTrigger>
+                            
+                            <!-- Login messages - orange (suspicious) -->
                             <DataTrigger Binding="{Binding Name}" Value="Login">
-                                <Setter Property="Background" Value="Orange"/>
+                                <Setter Property="Background" Value="#FFA500"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding Name}" Value="LoginResponse">
-                                <Setter Property="Background" Value="Orange"/>
+                                <Setter Property="Background" Value="#FFA500"/>
+                            </DataTrigger>
+                            
+                            <!-- Trade Capture Reports - light cyan -->
+                            <DataTrigger Binding="{Binding Name}" Value="TradeCaptureReportSingle">
+                                <Setter Property="Background" Value="#E0FFFF"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Name}" Value="TradeCaptureReportDual">
+                                <Setter Property="Background" Value="#E0FFFF"/>
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>
