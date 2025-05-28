@@ -1,6 +1,7 @@
 // Models/ControlLimit.cs
 using System;
 using System.ComponentModel;
+using System.Text.RegularExpressions;
 
 namespace RC_GUI_WATS.Models
 {
@@ -29,6 +30,28 @@ namespace RC_GUI_WATS.Models
                 _name = value;
                 OnPropertyChanged(nameof(Name));
             }
+        }
+        
+        public ScopeType GetScopeType()
+        {
+            if (string.IsNullOrEmpty(Scope))
+                return ScopeType.SingleInstrument;
+            
+            if (Scope == "(ALL)")
+                return ScopeType.AllInstruments;
+            
+            if (Scope.StartsWith("(") && Scope.EndsWith(")"))
+                return ScopeType.InstrumentType;
+            
+            if (Scope.StartsWith("[") && Scope.EndsWith("]"))
+                return ScopeType.InstrumentGroup;
+            
+            // Sprawdź czy to ISIN (12 znaków, zaczyna się od 2 liter)
+            if (Regex.IsMatch(Scope, @"^[A-Z]{2}[A-Z0-9]{10}$"))
+                return ScopeType.SingleInstrument;
+            
+            // Domyślnie traktuj jako pojedynczy instrument
+            return ScopeType.SingleInstrument;
         }
 
         private string _value;
