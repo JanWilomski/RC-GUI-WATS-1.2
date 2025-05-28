@@ -143,6 +143,8 @@
                     <ComboBoxItem Content="Sell"/>
                     <ComboBoxItem Content="Trade"/>
                     <ComboBoxItem Content="Dual"/>
+                    <ComboBoxItem Content="MassQuote"/>
+                    <ComboBoxItem Content="MassQuoteResp"/>
                 </ComboBox>
                 
                 <TextBlock Text="InstrumentID:" VerticalAlignment="Center" Margin="0,0,5,0"/>
@@ -186,7 +188,7 @@
                             </Style>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Header="Side" Binding="{Binding Side}" Width="60">
+                    <DataGridTextColumn Header="Side" Binding="{Binding Side}" Width="80">
                         <DataGridTextColumn.ElementStyle>
                             <Style TargetType="TextBlock">
                                 <Setter Property="HorizontalAlignment" Value="Center"/>
@@ -203,12 +205,20 @@
                                         <Setter Property="Foreground" Value="Blue"/>
                                         <Setter Property="FontWeight" Value="Bold"/>
                                     </Trigger>
+                                    <Trigger Property="Text" Value="MassQuote">
+                                        <Setter Property="Foreground" Value="Purple"/>
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                    </Trigger>
+                                    <Trigger Property="Text" Value="MassQuoteResp">
+                                        <Setter Property="Foreground" Value="DarkMagenta"/>
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                    </Trigger>
                                 </Style.Triggers>
                             </Style>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
                     <DataGridTextColumn Header="InstrumentId" Binding="{Binding InstrumentIdDisplay}" Width="80"/>
-                    <DataGridTextColumn Header="ClientOrderId" Binding="{Binding ClientOrderId}" Width="120"/>
+                    <DataGridTextColumn Header="ClientOrderId" Binding="{Binding ClientOrderId}" Width="150"/>
                     <DataGridTextColumn Header="Raw Data" Binding="{Binding RawDataShort}" Width="200" Visibility="{Binding IsChecked, ElementName=ShowRawDataCheckBox, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                 </DataGrid.Columns>
                 
@@ -228,6 +238,17 @@
                             <DataTrigger Binding="{Binding Header}" Value="ERROR">
                                 <Setter Property="Background" Value="Yellow"/>
                                 <Setter Property="FontWeight" Value="Bold"/>
+                            </DataTrigger>
+                            
+                            <!-- MassQuote messages - light purple -->
+                            <DataTrigger Binding="{Binding Name}" Value="MassQuote">
+                                <Setter Property="Background" Value="#E6E6FA"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </DataTrigger>
+                            
+                            <!-- MassQuoteResponse - light magenta -->
+                            <DataTrigger Binding="{Binding Name}" Value="MassQuoteResponse">
+                                <Setter Property="Background" Value="#F0E6FF"/>
                             </DataTrigger>
                             
                             <!-- OrderAdd - bright green -->

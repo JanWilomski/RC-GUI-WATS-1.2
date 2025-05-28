@@ -193,9 +193,9 @@ namespace RC_GUI_WATS.Services
         }
 
         // Statistics methods
-        public (int Orders, int Trades, int Cancels, int Others) GetMessageStatistics()
+        public (int Orders, int Trades, int Cancels, int Quotes, int Others) GetMessageStatistics()
         {
-            int orders = 0, trades = 0, cancels = 0, others = 0;
+            int orders = 0, trades = 0, cancels = 0, quotes = 0, others = 0;
 
             foreach (var msg in _ccgMessages)
             {
@@ -218,13 +218,17 @@ namespace RC_GUI_WATS.Services
                     case "ordermasscancelresponse":
                         cancels++;
                         break;
+                    case "massquote":
+                    case "massquoteresponse":
+                        quotes++;
+                        break;
                     default:
                         others++;
                         break;
                 }
             }
 
-            return (orders, trades, cancels, others);
+            return (orders, trades, cancels, quotes, others);
         }
     }
 }

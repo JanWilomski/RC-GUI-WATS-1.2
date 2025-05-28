@@ -83,6 +83,12 @@ namespace RC_GUI_WATS.Services
                     case CcgMessageType.TradeCaptureReportDual:
                         ParseTradeCaptureReportDual(data, message);
                         break;
+                    case CcgMessageType.MassQuote:
+                        ParseMassQuote(data, message);
+                        break;
+                    case CcgMessageType.MassQuoteResponse:
+                        ParseMassQuoteResponse(data, message);
+                        break;
                     default:
                         // For other message types, just parse basic info
                         break;
@@ -104,6 +110,114 @@ namespace RC_GUI_WATS.Services
                     DateReceived = receivedTime,
                     RawData = data
                 };
+            }
+        }
+
+        private static void ParseMassQuote(byte[] data, CcgMessage message)
+        {
+            if (data.Length < 1200) return; // MassQuote length is 1200 bytes
+
+            try
+            {
+                // Header: 16 bytes
+                // stpId: 1 byte at offset 16
+                byte stpId = data[16];
+                
+                // capacity: 1 byte at offset 17
+                byte capacity = data[17];
+                
+                // account: 16 bytes at offset 18
+                // accountType: 1 byte at offset 34
+                // mifidFields: starts at offset 35
+                // Skip MiFID fields (flags + 3 * (shortCode + qualifier) = 1 + 3*(4+1) = 16 bytes)
+                // memo: 18 bytes at offset 51
+                // clearingMemberCode: 20 bytes at offset 69
+                // clearingMemberClearingIdentifier: 1 byte at offset 89
+                // quotes.count: 1 byte at offset 90
+                byte quotesCount = data[90];
+                
+                // quotes.items: starts at offset 91
+                // Each quote is 36 bytes: instrumentId(4) + bid.price(8) + bid.quantity(8) + ask.price(8) + ask.quantity(8)
+                
+                message.Side = "MassQuote";
+                message.ClientOrderId = $"STP:{stpId}";
+                message.Quantity = quotesCount; // Store quotes count as quantity
+                
+                // Parse first quote if available
+                if (quotesCount > 0 && data.Length >= 91 + 36)
+                {
+                    uint instrumentId = BitConverter.ToUInt32(data, 91);
+                    message.InstrumentId = instrumentId;
+                    
+                    // Parse bid price (first price in the quote)
+                    long bidPriceRaw = BitConverter.ToInt64(data, 95);
+                    message.Price = (decimal)bidPriceRaw / 100000000m; // Assuming 8 decimal places
+                    
+                    // Parse bid quantity
+                    ulong bidQuantity = BitConverter.ToUInt64(data, 103);
+                    // We could store additional info in ClientOrderId
+                    message.ClientOrderId = $"STP:{stpId},Quotes:{quotesCount},Instr:{instrumentId}";
+                }
+                
+                System.Diagnostics.Debug.WriteLine($"MassQuote parsed: STP={stpId}, Capacity={capacity}, QuotesCount={quotesCount}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error parsing MassQuote: {ex.Message}");
+            }
+        }
+
+        private static void ParseMassQuoteResponse(byte[] data, CcgMessage message)
+        {
+            if (data.Length < 719) return; // MassQuoteResponse length is 719 bytes
+
+            try
+            {
+                // Header: 16 bytes
+                // massQuoteId: 8 bytes at offset 16
+                ulong massQuoteId = BitConverter.ToUInt64(data, 16);
+                
+                // responses.count: 1 byte at offset 24
+                byte responsesCount = data[24];
+                
+                // responses.items: starts at offset 25
+                // Each QuoteOrderResponse is 23 bytes according to the structure
+                
+                message.Side = "MassQuoteResp";
+                message.ClientOrderId = $"QuoteId:{massQuoteId}";
+                message.Quantity = responsesCount; // Store responses count as quantity
+                
+                // Parse first response if available
+                if (responsesCount > 0 && data.Length >= 25 + 23)
+                {
+                    uint instrumentId = BitConverter.ToUInt32(data, 25);
+                    message.InstrumentId = instrumentId;
+                    
+                    // bidOrderId: 8 bytes at offset 29
+                    ulong bidOrderId = BitConverter.ToUInt64(data, 29);
+                    
+                    // askOrderId: 8 bytes at offset 37
+                    ulong askOrderId = BitConverter.ToUInt64(data, 37);
+                    
+                    // status: 1 byte at offset 45
+                    byte status = data[45];
+                    
+                    // reason: 2 bytes at offset 46
+                    ushort reason = BitConverter.ToUInt16(data, 46);
+                    
+                    message.ClientOrderId = $"QuoteId:{massQuoteId},Resp:{responsesCount},Status:{status}";
+                    
+                    if (reason != 0)
+                    {
+                        message.ClientOrderId += $",Reason:{reason}";
+                    }
+                }
+                
+                System.Diagnostics.Debug.WriteLine($"MassQuoteResponse parsed: QuoteId={massQuoteId}, ResponsesCount={responsesCount}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error parsing MassQuoteResponse: {ex.Message}");
             }
         }
 

@@ -57,8 +57,7 @@ namespace RC_GUI_WATS.Services
                                 {
                                     try
                                     {
-                                        if (msg.Contains("(ALL)") || msg.Contains("[") || 
-                                            Regex.IsMatch(msg, @"^[A-Z0-9]{12}"))
+                                        if (IsValidControlScope(msg))
                                         {
                                             UpdateControlLimit(msg);
                                         }
@@ -73,6 +72,32 @@ namespace RC_GUI_WATS.Services
                     }
                 }
             }
+        }
+
+        private bool IsValidControlScope(string message)
+        {
+            // Check for different scope types:
+            // 1. (ALL) - all instruments
+            // 2. (INSTRUMENT_TYPE) - instrument types in parentheses (but not (ALL))
+            // 3. [pattern] - instrument groups in square brackets
+            // 4. ISIN codes - typically 12 characters starting with letters
+            
+            if (message.Contains("(ALL)"))
+                return true;
+                
+            // Check for instrument types in parentheses (excluding (ALL))
+            if (message.Contains("(") && message.Contains(")")&&message!="(ALL)")
+                return true;
+                
+            // Check for instrument groups in square brackets
+            if (message.Contains("[") && message.Contains("]"))
+                return true;
+                
+            // Check for ISIN codes (12 characters, starting with 2 letters followed by alphanumeric)
+            if (Regex.IsMatch(message, @"^[A-Z]{2}[A-Z0-9]{10}"))
+                return true;
+                
+            return false;
         }
 
         public void UpdateControlLimit(string controlString)
@@ -92,9 +117,53 @@ namespace RC_GUI_WATS.Services
             }
             else
             {
-                // Add new limit
-                _controlLimits.Insert(0, limit);
+                // Add new limit with proper sorting
+                InsertLimitInSortedOrder(limit);
             }
+        }
+
+        private void InsertLimitInSortedOrder(ControlLimit newLimit)
+        {
+            // Find the correct position to insert the new limit
+            // Sort order: (ALL) first, then instrument types, then groups, then individual ISINs
+            
+            int insertIndex = 0;
+            var newScopeType = newLimit.GetScopeType();
+            
+            for (int i = 0; i < _controlLimits.Count; i++)
+            {
+                var existingScopeType = _controlLimits[i].GetScopeType();
+                
+                // Compare scope types first
+                if ((int)newScopeType < (int)existingScopeType)
+                {
+                    insertIndex = i;
+                    break;
+                }
+                else if ((int)newScopeType == (int)existingScopeType)
+                {
+                    // Same scope type, compare by name then by scope value
+                    int nameComparison = string.Compare(newLimit.Name, _controlLimits[i].Name, StringComparison.OrdinalIgnoreCase);
+                    if (nameComparison < 0)
+                    {
+                        insertIndex = i;
+                        break;
+                    }
+                    else if (nameComparison == 0)
+                    {
+                        // Same name, compare by scope value
+                        if (string.Compare(newLimit.Scope, _controlLimits[i].Scope, StringComparison.OrdinalIgnoreCase) < 0)
+                        {
+                            insertIndex = i;
+                            break;
+                        }
+                    }
+                }
+                
+                insertIndex = i + 1;
+            }
+            
+            _controlLimits.Insert(insertIndex, newLimit);
         }
 
         public async Task LoadControlHistoryAsync()
@@ -122,6 +191,21 @@ namespace RC_GUI_WATS.Services
             {
                 throw new InvalidOperationException("Not connected to server");
             }
+        }
+
+        public int GetLimitCountByType(ScopeType scopeType)
+        {
+            return _controlLimits.Count(l => l.GetScopeType() == scopeType);
+        }
+
+        public string GetLimitsSummary()
+        {
+            var allCount = GetLimitCountByType(ScopeType.AllInstruments);
+            var typeCount = GetLimitCountByType(ScopeType.InstrumentType);
+            var groupCount = GetLimitCountByType(ScopeType.InstrumentGroup);
+            var isinCount = GetLimitCountByType(ScopeType.SingleInstrument);
+            
+            return $"Limity: ALL({allCount}), Typy({typeCount}), Grupy({groupCount}), ISIN({isinCount})";
         }
     }
 }

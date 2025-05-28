@@ -197,8 +197,8 @@ namespace RC_GUI_WATS.ViewModels
             var count = _ccgMessagesService.GetMessageCount();
             CcgMessageCountText = $"CCG Messages: {count}";
 
-            var (orders, trades, cancels, others) = _ccgMessagesService.GetMessageStatistics();
-            CcgStatisticsText = $"Orders: {orders}, Trades: {trades}, Cancels: {cancels}, Others: {others}";
+            var (orders, trades, cancels, quotes, others) = _ccgMessagesService.GetMessageStatistics();
+            CcgStatisticsText = $"Orders: {orders}, Trades: {trades}, Cancels: {cancels}, Quotes: {quotes}, Others: {others}";
         }
 
         private void ApplyFilters()

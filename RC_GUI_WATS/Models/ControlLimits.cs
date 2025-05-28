@@ -1,16 +1,65 @@
 // Models/ControlLimit.cs
+using System;
+using System.ComponentModel;
+
 namespace RC_GUI_WATS.Models
 {
-    public class ControlLimit
+    public class ControlLimit : INotifyPropertyChanged
     {
-        public string Scope { get; set; } // (ALL), ISIN lub [wzorzec]
-        public string Name { get; set; }  // Nazwa kontroli (np. halt, maxOrderRate, maxAbsShares, maxShortShares)
-        public string Value { get; set; } // Wartość kontroli
-        public string DisplayName { get; set; } // Opcjonalne przyjazne wyświetlanie
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        private string _scope;
+        public string Scope 
+        { 
+            get => _scope;
+            set
+            {
+                _scope = value;
+                OnPropertyChanged(nameof(Scope));
+                UpdateDisplayName();
+            }
+        }
+
+        private string _name;
+        public string Name 
+        { 
+            get => _name;
+            set
+            {
+                _name = value;
+                OnPropertyChanged(nameof(Name));
+            }
+        }
+
+        private string _value;
+        public string Value 
+        { 
+            get => _value;
+            set
+            {
+                _value = value;
+                OnPropertyChanged(nameof(Value));
+            }
+        }
+
+        private string _displayName;
+        public string DisplayName 
+        { 
+            get => _displayName;
+            set
+            {
+                _displayName = value;
+                OnPropertyChanged(nameof(DisplayName));
+            }
+        }
+
+        // Dodajemy timestamp dla chronologicznego sortowania
+        public DateTime ReceivedTime { get; set; }
         
         // Konstruktor domyślny
         public ControlLimit()
         {
+            ReceivedTime = DateTime.Now;
         }
         
         // Konstruktor z parametrami
@@ -19,14 +68,19 @@ namespace RC_GUI_WATS.Models
             Scope = scope;
             Name = name;
             Value = value;
-            
+            ReceivedTime = DateTime.Now;
+            UpdateDisplayName();
+        }
+        
+        private void UpdateDisplayName()
+        {
             // Ustaw DisplayName na podstawie scope
-            if (scope == "(ALL)")
+            if (Scope == "(ALL)")
                 DisplayName = "Wszystkie instrumenty";
-            else if (scope.StartsWith("[") && scope.EndsWith("]"))
-                DisplayName = $"Grupa {scope}";
+            else if (!string.IsNullOrEmpty(Scope) && Scope.StartsWith("[") && Scope.EndsWith("]"))
+                DisplayName = $"Grupa {Scope}";
             else
-                DisplayName = scope; // ISIN
+                DisplayName = Scope; // ISIN
         }
         
         // Formatowanie do kontroli serwera
@@ -44,6 +98,11 @@ namespace RC_GUI_WATS.Models
                 return new ControlLimit(parts[0], parts[1], parts[2]);
             }
             return null;
+        }
+
+        protected virtual void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }

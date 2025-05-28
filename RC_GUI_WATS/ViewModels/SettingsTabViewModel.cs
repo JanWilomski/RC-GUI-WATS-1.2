@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Threading.Tasks;
 using System.Windows;
 using RC_GUI_WATS.Commands;
@@ -13,6 +14,7 @@ namespace RC_GUI_WATS.ViewModels
         private readonly RcTcpClientService _clientService;
         private readonly LimitsService _limitsService;
         private readonly ConfigurationService _configService;
+        private readonly FileLoggingService _fileLoggingService;
         
         // Properties for settings
         private string _serverIp;
@@ -25,6 +27,7 @@ namespace RC_GUI_WATS.ViewModels
                 {
                     // Zapisz zmiany w konfiguracji
                     _configService.UpdateConfigValue("ServerIP", value);
+                    _fileLoggingService.LogSettings("Server IP changed", $"New IP: {value}");
                 }
             }
         }
@@ -39,12 +42,20 @@ namespace RC_GUI_WATS.ViewModels
                 {
                     // Zapisz zmiany w konfiguracji
                     _configService.UpdateConfigValue("ServerPort", value);
+                    _fileLoggingService.LogSettings("Server Port changed", $"New Port: {value}");
                 }
             }
         }
         
         // Properties for limits
         public ObservableCollection<ControlLimit> ControlLimits => _limitsService.ControlLimits;
+        
+        private string _limitsSummary;
+        public string LimitsSummary
+        {
+            get => _limitsSummary;
+            set => SetProperty(ref _limitsSummary, value);
+        }
         
         // Properties for quick limit change
         private int _quickScopeTypeSelectedIndex;
@@ -89,16 +100,26 @@ namespace RC_GUI_WATS.ViewModels
             set => SetProperty(ref _rawMessagesText, value);
         }
         
+        // Log file path display
+        private string _logFilePath;
+        public string LogFilePath
+        {
+            get => _logFilePath;
+            set => SetProperty(ref _logFilePath, value);
+        }
+        
         // Commands
         public RelayCommand AddLimitCommand { get; }
         public RelayCommand RefreshLimitsCommand { get; }
         public RelayCommand SaveLimitsCommand { get; }
         public RelayCommand ApplyQuickLimitCommand { get; }
+        public RelayCommand OpenLogFileCommand { get; }
 
         public SettingsTabViewModel(
             RcTcpClientService clientService,
             LimitsService limitsService,
             ConfigurationService configService,
+            FileLoggingService fileLoggingService,
             string serverIp,
             string serverPort)
         
@@ -106,30 +127,45 @@ namespace RC_GUI_WATS.ViewModels
             _clientService = clientService;
             _limitsService = limitsService;
             _configService = configService;
+            _fileLoggingService = fileLoggingService;
             
             // Initialize properties from configuration
             _serverIp = serverIp;
             _serverPort = serverPort;
+            _logFilePath = System.IO.Path.GetFileName(_fileLoggingService.GetLogFilePath());
             
             // Initialize commands
             AddLimitCommand = new RelayCommand(AddLimit);
             RefreshLimitsCommand = new RelayCommand(async () => await LoadControlHistoryAsync());
             SaveLimitsCommand = new RelayCommand(SaveLimits);
             ApplyQuickLimitCommand = new RelayCommand(ApplyQuickLimit);
+            OpenLogFileCommand = new RelayCommand(OpenLogFile);
             
             // Subscribe to message events
             _clientService.MessageReceived += OnMessageReceived;
+            
+            // Subscribe to limits collection changes
+            _limitsService.ControlLimits.CollectionChanged += (s, e) => UpdateLimitsSummary();
             
             // Initialize with default values
             QuickScopeTypeSelectedIndex = 0;
             QuickLimitTypeSelectedIndex = 0;
             QuickLimitValue = "";
             RawMessagesText = "";
+            
+            // Initialize limits summary
+            UpdateLimitsSummary();
+            
+            // Log initialization
+            _fileLoggingService.LogSettings("Settings tab initialized", $"Server: {_serverIp}:{_serverPort}");
         }
         
         private void OnMessageReceived(RcMessage message)
         {
-            // Log raw messages to the debug panel
+            // Log raw message to file
+            _fileLoggingService.LogRawMessage(message);
+            
+            // Log raw messages to the debug panel (existing UI functionality)
             var sb = new System.Text.StringBuilder();
             
             sb.AppendLine($"--- Wiadomość {DateTime.Now:HH:mm:ss.fff} ---");
@@ -178,11 +214,14 @@ namespace RC_GUI_WATS.ViewModels
                 case 0: // All instruments
                     QuickScopeValue = "(ALL)";
                     break;
-                case 1: // Instrument group
-                    QuickScopeValue = "[11*]";
+                case 1: // Instrument type
+                    QuickScopeValue = "()";
                     break;
-                case 2: // Single instrument
-                    QuickScopeValue = "PLPKO0000016";
+                case 2: // Instrument group
+                    QuickScopeValue = "[]";
+                    break;
+                case 3: // Single instrument
+                    QuickScopeValue = "";
                     break;
             }
         }
@@ -191,15 +230,23 @@ namespace RC_GUI_WATS.ViewModels
         {
             if (!_clientService.IsConnected)
             {
-                MessageBox.Show("Nie jesteś połączony z serwerem!", "Błąd", MessageBoxButton.OK, MessageBoxImage.Warning);
+                var message = "Nie jesteś połączony z serwerem! Nie można pobrać historii kontroli.";
+                MessageBox.Show(message, "Błąd", MessageBoxButton.OK, MessageBoxImage.Warning);
+                _fileLoggingService.LogSettings("Load control history failed", "Not connected to server");
                 return;
             }
             
+            _fileLoggingService.LogSettings("Loading control history", "Sending get controls history request");
             await _limitsService.LoadControlHistoryAsync();
+            
+            // Update summary after loading
+            UpdateLimitsSummary();
         }
         
         private void AddLimit()
         {
+            _fileLoggingService.LogSettings("Add limit dialog opened");
+            
             var addLimitWindow = new AddLimitWindow();
             if (addLimitWindow.ShowDialog() == true)
             {
@@ -208,10 +255,15 @@ namespace RC_GUI_WATS.ViewModels
                 {
                     // Add to collection
                     _limitsService.ControlLimits.Add(newLimit);
+                    _fileLoggingService.LogControlLimit("Added new limit", newLimit.ToControlString());
                     
                     // Send to server
                     SendControlLimit(newLimit);
                 }
+            }
+            else
+            {
+                _fileLoggingService.LogSettings("Add limit dialog cancelled");
             }
         }
         
@@ -222,16 +274,22 @@ namespace RC_GUI_WATS.ViewModels
                 try
                 {
                     await _limitsService.SendControlLimitAsync(limit);
-                    LogMessage($"Wysłano limit: {limit.ToControlString()}");
+                    var message = $"Wysłano limit: {limit.ToControlString()}";
+                    LogMessage(message);
+                    _fileLoggingService.LogControlLimit("Sent control limit", limit.ToControlString());
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Błąd podczas wysyłania limitu: {ex.Message}", "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
+                    var errorMessage = $"Błąd podczas wysyłania limitu: {ex.Message}";
+                    MessageBox.Show(errorMessage, "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
+                    _fileLoggingService.LogError($"Failed to send control limit: {limit.ToControlString()}", ex);
                 }
             }
             else
             {
-                MessageBox.Show("Nie jesteś połączony z serwerem!", "Błąd", MessageBoxButton.OK, MessageBoxImage.Warning);
+                var message = "Nie jesteś połączony z serwerem!";
+                MessageBox.Show(message, "Błąd", MessageBoxButton.OK, MessageBoxImage.Warning);
+                _fileLoggingService.LogSettings("Send control limit failed", "Not connected to server");
             }
         }
         
@@ -239,7 +297,9 @@ namespace RC_GUI_WATS.ViewModels
         {
             if (_limitsService.ControlLimits.Count == 0)
             {
-                MessageBox.Show("Brak limitów do zapisania.", "Informacja", MessageBoxButton.OK, MessageBoxImage.Information);
+                var message = "Brak limitów do zapisania.";
+                MessageBox.Show(message, "Informacja", MessageBoxButton.OK, MessageBoxImage.Information);
+                _fileLoggingService.LogSettings("Save limits", "No limits to save");
                 return;
             }
             
@@ -254,83 +314,141 @@ namespace RC_GUI_WATS.ViewModels
             {
                 try
                 {
-                    // Sort limits according to requested order
+                    // Sort limits according to the 4-tier hierarchy: 1.ALL 2.Types 3.Groups 4.ISIN
                     var sortedLimits = new System.Collections.Generic.List<ControlLimit>(_limitsService.ControlLimits);
                     
                     sortedLimits.Sort((a, b) => 
                     {
-                        // Helper function to get priority of scope type
-                        int GetScopePriority(string scope)
-                        {
-                            if (scope == "(ALL)")
-                                return 0; // Highest priority
-                            else if (scope.StartsWith("[") && scope.EndsWith("]"))
-                                return 1; // Middle priority
-                            else
-                                return 2; // Lowest priority (individual ISINs)
-                        }
+                        // Get scope types using the enum
+                        var aScopeType = a.GetScopeType();
+                        var bScopeType = b.GetScopeType();
                         
-                        // Compare by scope priority first
-                        int aPriority = GetScopePriority(a.Scope);
-                        int bPriority = GetScopePriority(b.Scope);
+                        // Compare by scope type priority first (enum values define priority)
+                        if (aScopeType != bScopeType)
+                            return aScopeType.CompareTo(bScopeType);
                         
-                        if (aPriority != bPriority)
-                            return aPriority.CompareTo(bPriority);
+                        // Within same scope type, sort by limit name first
+                        int nameComparison = string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
+                        if (nameComparison != 0)
+                            return nameComparison;
                         
-                        // If same type, compare by name
-                        if (a.Name != b.Name)
-                            return string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
-                        
-                        // If same name, compare by scope value
+                        // If same limit name, sort by scope value
                         return string.Compare(a.Scope, b.Scope, StringComparison.OrdinalIgnoreCase);
                     });
                     
-                    // Write to file
+                    // Write to file with section headers for better readability
                     using (System.IO.StreamWriter writer = new System.IO.StreamWriter(saveFileDialog.FileName))
                     {
-                        // Write header
+                        // Write CSV header
                         writer.WriteLine("Scope,Name,Value");
                         
-                        // Write sorted limits
+                        // Track current section to add comments
+                        ScopeType? currentSectionType = null;
+                        int sectionCount = 0;
+                        
                         foreach (var limit in sortedLimits)
                         {
+                            var limitScopeType = limit.GetScopeType();
+                            
+                            // Add section comment when scope type changes
+                            if (currentSectionType != limitScopeType)
+                            {
+                                if (currentSectionType.HasValue)
+                                    writer.WriteLine(); // Empty line between sections
+                                
+                                // Add section header as comment
+                                string sectionName = GetSectionName(limitScopeType);
+                                writer.WriteLine($"# {sectionName}");
+                                currentSectionType = limitScopeType;
+                                sectionCount++;
+                            }
+                            
+                            // Write the limit
                             writer.WriteLine(limit.ToControlString());
                         }
+                        
+                        // Add summary at the end
+                        writer.WriteLine();
+                        writer.WriteLine($"# Summary: {sortedLimits.Count} total limits in {sectionCount} sections");
+                        writer.WriteLine($"# Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
                     }
                     
-                    MessageBox.Show($"Zapisano {sortedLimits.Count} limitów do pliku.", "Zapisano", MessageBoxButton.OK, MessageBoxImage.Information);
+                    // Count limits by type for detailed logging
+                    var allCount = sortedLimits.Count(l => l.GetScopeType() == ScopeType.AllInstruments);
+                    var typeCount = sortedLimits.Count(l => l.GetScopeType() == ScopeType.InstrumentType);
+                    var groupCount = sortedLimits.Count(l => l.GetScopeType() == ScopeType.InstrumentGroup);
+                    var isinCount = sortedLimits.Count(l => l.GetScopeType() == ScopeType.SingleInstrument);
+                    
+                    var successMessage = $"Zapisano {sortedLimits.Count} limitów do pliku.\n\n" +
+                                       $"Podział:\n" +
+                                       $"• Wszystkie instrumenty (ALL): {allCount}\n" +
+                                       $"• Typy instrumentów: {typeCount}\n" +
+                                       $"• Grupy instrumentów: {groupCount}\n" +
+                                       $"• Pojedyncze instrumenty (ISIN): {isinCount}";
+                    
+                    MessageBox.Show(successMessage, "Zapisano", MessageBoxButton.OK, MessageBoxImage.Information);
+                    
+                    _fileLoggingService.LogSettings("Limits saved to file", 
+                        $"File: {saveFileDialog.FileName}, Total: {sortedLimits.Count} " +
+                        $"(ALL: {allCount}, Types: {typeCount}, Groups: {groupCount}, ISIN: {isinCount})");
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Błąd podczas zapisywania limitów: {ex.Message}", "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
+                    var errorMessage = $"Błąd podczas zapisywania limitów: {ex.Message}";
+                    MessageBox.Show(errorMessage, "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
+                    _fileLoggingService.LogError("Failed to save limits to file", ex);
                 }
             }
+            else
+            {
+                _fileLoggingService.LogSettings("Save limits dialog cancelled");
+            }
+        }
+        
+        private string GetSectionName(ScopeType scopeType)
+        {
+            return scopeType switch
+            {
+                ScopeType.AllInstruments => "1. ALL INSTRUMENTS - Limits applied to all instruments",
+                ScopeType.InstrumentType => "2. INSTRUMENT TYPES - Limits applied to specific instrument types",
+                ScopeType.InstrumentGroup => "3. INSTRUMENT GROUPS - Limits applied to instrument groups",
+                ScopeType.SingleInstrument => "4. SINGLE INSTRUMENTS - Limits applied to individual ISINs",
+                _ => "UNKNOWN SCOPE TYPE"
+            };
         }
         
         private async void ApplyQuickLimit()
         {
             if (!_clientService.IsConnected)
             {
-                MessageBox.Show("Nie jesteś połączony z serwerem!", "Błąd", MessageBoxButton.OK, MessageBoxImage.Warning);
+                var message = "Nie jesteś połączony z serwerem!";
+                MessageBox.Show(message, "Błąd", MessageBoxButton.OK, MessageBoxImage.Warning);
+                _fileLoggingService.LogSettings("Apply quick limit failed", "Not connected to server");
                 return;
             }
             
             // Validation
             if (string.IsNullOrWhiteSpace(QuickScopeValue))
             {
-                MessageBox.Show("Podaj wartość zakresu", "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
+                var message = "Podaj wartość zakresu";
+                MessageBox.Show(message, "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
+                _fileLoggingService.LogSettings("Apply quick limit failed", "Empty scope value");
                 return;
             }
             
             if (QuickLimitTypeSelectedIndex < 0)
             {
-                MessageBox.Show("Wybierz typ limitu", "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
+                var message = "Wybierz typ limitu";
+                MessageBox.Show(message, "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
+                _fileLoggingService.LogSettings("Apply quick limit failed", "No limit type selected");
                 return;
             }
             
             if (string.IsNullOrWhiteSpace(QuickLimitValue))
             {
-                MessageBox.Show("Podaj wartość limitu", "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
+                var message = "Podaj wartość limitu";
+                MessageBox.Show(message, "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
+                _fileLoggingService.LogSettings("Apply quick limit failed", "Empty limit value");
                 return;
             }
             
@@ -352,19 +470,57 @@ namespace RC_GUI_WATS.ViewModels
                 // Send to server
                 await _clientService.SendSetControlAsync(controlString);
                 
-                LogMessage($"Wysłano limit: {controlString}");
+                var logMessage = $"Wysłano limit: {controlString}";
+                LogMessage(logMessage);
+                _fileLoggingService.LogControlLimit("Applied quick limit", controlString);
                 
                 await LoadControlHistoryAsync();
+                UpdateLimitsSummary();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Błąd podczas wysyłania limitu: {ex.Message}", "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
+                var errorMessage = $"Błąd podczas wysyłania limitu: {ex.Message}";
+                MessageBox.Show(errorMessage, "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
+                _fileLoggingService.LogError("Failed to apply quick limit", ex);
+            }
+        }
+        
+        private void OpenLogFile()
+        {
+            try
+            {
+                var fullPath = _fileLoggingService.GetLogFilePath();
+                if (System.IO.File.Exists(fullPath))
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = fullPath,
+                        UseShellExecute = true
+                    });
+                    _fileLoggingService.LogSettings("Log file opened", fullPath);
+                }
+                else
+                {
+                    MessageBox.Show("Plik dziennika nie istnieje.", "Błąd", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    _fileLoggingService.LogSettings("Open log file failed", "File does not exist");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Błąd podczas otwierania pliku dziennika: {ex.Message}", "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
+                _fileLoggingService.LogError("Failed to open log file", ex);
             }
         }
         
         private void LogMessage(string message)
         {
-            RawMessagesText += $"{message}\n";
+            RawMessagesText += $"{DateTime.Now:HH:mm:ss.fff}: {message}\n";
+            _fileLoggingService.LogMessage($"UI_LOG: {message}");
+        }
+        
+        private void UpdateLimitsSummary()
+        {
+            LimitsSummary = _limitsService.GetLimitsSummary();
         }
     }
 }

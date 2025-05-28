@@ -19,15 +19,19 @@ namespace RC_GUI_WATS
         {
             // Create a simple service container
             var configService = new ConfigurationService();
+            var fileLoggingService = new FileLoggingService(); // Create logging service first
             var clientService = new RcTcpClientService();
             var positionsService = new PositionsService(clientService);
             var capitalService = new CapitalService(clientService);
             var limitsService = new LimitsService(clientService);
             var instrumentsService = new InstrumentsService();
-            var ccgMessagesService = new CcgMessagesService(clientService); // Add CCG Messages Service
+            var ccgMessagesService = new CcgMessagesService(clientService);
             
             // Create heartbeat monitor service
             var heartbeatMonitorService = new HeartbeatMonitorService(clientService);
+
+            // Log application startup
+            fileLoggingService.LogSettings("Application startup", "Initializing RC GUI WATS");
 
             // Set up the main window with view model
             var mainWindow = new MainWindow();
@@ -39,10 +43,22 @@ namespace RC_GUI_WATS
                 instrumentsService,
                 configService,  
                 heartbeatMonitorService,
-                ccgMessagesService); // Add CCG Messages Service to constructor
+                ccgMessagesService,
+                fileLoggingService); // Add FileLoggingService to constructor
 
             mainWindow.DataContext = mainViewModel;
+            
+            // Log window creation
+            fileLoggingService.LogSettings("Main window created", "Application ready to start");
+            
             mainWindow.Show();
+        }
+
+        protected override void OnExit(ExitEventArgs e)
+        {
+            // Log application shutdown - we could create a static reference to fileLoggingService if needed
+            // For now, we'll just rely on the file logging service in the main window
+            base.OnExit(e);
         }
     }
 }

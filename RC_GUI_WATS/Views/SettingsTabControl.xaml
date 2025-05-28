@@ -10,6 +10,7 @@
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         
         <!-- Server settings panel -->
@@ -104,8 +105,21 @@
             </Grid>
         </GroupBox>
         
+        <!-- Log file info panel -->
+        <GroupBox Grid.Row="3" Header="Plik dziennika" Margin="5">
+            <StackPanel Orientation="Horizontal" Margin="5">
+                <TextBlock Text="Aktualny plik dziennika:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <TextBlock Text="{Binding LogFilePath}" VerticalAlignment="Center" FontFamily="Consolas" 
+                          Foreground="DarkBlue" Margin="0,0,10,0"/>
+                <Button Content="Otwórz plik dziennika" Command="{Binding OpenLogFileCommand}" 
+                        Padding="10,2" VerticalAlignment="Center"/>
+                <TextBlock Text="(wszystkie komunikaty z tej zakładki są także zapisywane do pliku)" 
+                          VerticalAlignment="Center" FontSize="10" Foreground="Gray" Margin="15,0,0,0"/>
+            </StackPanel>
+        </GroupBox>
+        
         <!-- Log panel -->
-        <GroupBox Grid.Row="3" Header="Log komunikacji (for debugging)" Margin="5" Height="150">
+        <GroupBox Grid.Row="4" Header="Log komunikacji (podgląd)" Margin="5" Height="150">
             <TextBox Text="{Binding RawMessagesText}" IsReadOnly="True" TextWrapping="Wrap" 
                     VerticalScrollBarVisibility="Auto" FontFamily="Consolas" FontSize="11"/>
         </GroupBox>
