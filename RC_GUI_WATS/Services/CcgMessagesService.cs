@@ -1,10 +1,7 @@
 ﻿// Services/CcgMessagesService.cs
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Text;
-using System.Windows;
-using System.Windows.Threading;
+using System.Linq;
 using RC_GUI_WATS.Models;
 
 namespace RC_GUI_WATS.Services
@@ -13,413 +10,221 @@ namespace RC_GUI_WATS.Services
     {
         private RcTcpClientService _clientService;
         private ObservableCollection<CcgMessage> _ccgMessages = new ObservableCollection<CcgMessage>();
-        private readonly Dispatcher _dispatcher;
-        
-        // Track rewind status
-        private bool _isRewindInProgress = false;
-        private uint _lastProcessedSequenceNumber = 0;
-        
+        private const int MAX_MESSAGES = 1000; // Limit to prevent memory issues
+
         public ObservableCollection<CcgMessage> CcgMessages => _ccgMessages;
-        
-        // Events
-        public event Action<int> HistoricalMessagesLoaded;
-        public event Action RewindCompleted;
-        
-        public bool IsRewindInProgress => _isRewindInProgress;
-        public uint LastProcessedSequenceNumber => _lastProcessedSequenceNumber;
-        
+
+        public event Action<CcgMessage> NewCcgMessageReceived;
+        public event Action MessagesCleared;
+
         public CcgMessagesService(RcTcpClientService clientService)
         {
             _clientService = clientService;
             _clientService.MessageReceived += ProcessMessage;
-            _dispatcher = Application.Current.Dispatcher;
         }
-        
+
         private void ProcessMessage(RcMessage message)
         {
             foreach (var block in message.Blocks)
             {
-                if (block.Payload.Length > 0)
+                if (block.Payload.Length > 0 && block.Payload[0] == (byte)'B')
                 {
-                    char messageType = (char)block.Payload[0];
-                    
-                    // Check for rewind complete message ('r')
-                    if (messageType == 'r')
-                    {
-                        OnRewindCompleted();
-                        continue;
-                    }
-                    
-                    // Process CCG messages (type 'B')
-                    if (messageType == 'B')
-                    {
-                        ProcessCcgMessage(block.Payload, message.Header.SequenceNumber);
-                    }
+                    ProcessCcgMessage(block.Payload);
                 }
             }
         }
-        
-        private void ProcessCcgMessage(byte[] payload, uint rcSequenceNumber)
+
+        private void ProcessCcgMessage(byte[] payload)
         {
             if (payload.Length < 3)
                 return;
-                
+
             try
             {
-                // Extract length of CCG message
-                ushort ccgMessageLength = BitConverter.ToUInt16(payload, 1);
+                // Extract CCG message from RC message payload
+                // Format: 'B' + uint16 length + CCG binary data
+                ushort ccgLength = BitConverter.ToUInt16(payload, 1);
                 
-                if (payload.Length < 3 + ccgMessageLength)
+                if (payload.Length < 3 + ccgLength)
                     return;
+
+                // Extract the actual CCG binary message
+                byte[] ccgData = new byte[ccgLength];
+                Array.Copy(payload, 3, ccgData, 0, ccgLength);
+
+                // DEBUG: Log first few messages to see what we're getting
+                if (_ccgMessages.Count < 10)
+                {
+                    string hexDump = BitConverter.ToString(ccgData.Take(Math.Min(ccgData.Length, 20)).ToArray());
+                    System.Diagnostics.Debug.WriteLine($"CCG Message #{_ccgMessages.Count}: Length={ccgLength}, First 20 bytes: {hexDump}");
                     
-                // Extract CCG message bytes
-                byte[] ccgMessageData = new byte[ccgMessageLength];
-                Array.Copy(payload, 3, ccgMessageData, 0, ccgMessageLength);
+                    if (ccgData.Length >= 4)
+                    {
+                        ushort length = BitConverter.ToUInt16(ccgData, 0);
+                        ushort msgType = BitConverter.ToUInt16(ccgData, 2);
+                        System.Diagnostics.Debug.WriteLine($"  Parsed Length: {length}, MsgType: {msgType}");
+                    }
+                }
+
+                // Check if this is a heartbeat message (skip them)
+                if (ccgData.Length >= 4)
+                {
+                    ushort msgType = BitConverter.ToUInt16(ccgData, 2);
+                    if (msgType == (ushort)CcgMessageType.Heartbeat)
+                    {
+                        // Skip heartbeat messages - they're handled by HeartbeatMonitorService
+                        return;
+                    }
+                    
+                    // Skip Login messages if there are too many (probably parsing error)
+                    if (msgType == (ushort)CcgMessageType.Login || msgType == (ushort)CcgMessageType.LoginResponse)
+                    {
+                        var loginCount = _ccgMessages.Count(m => m.Name == "Login" || m.Name == "LoginResponse");
+                        if (loginCount > 5) // Allow only first 5 login messages
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Skipping Login message (already have {loginCount})");
+                            return;
+                        }
+                    }
+                }
+
+                // Parse the CCG message
+                var ccgMessage = CcgMessageParser.ParseCcgMessage(ccgData, DateTime.Now);
                 
-                var ccgMessage = ParseCcgMessage(ccgMessageData);
                 if (ccgMessage != null)
                 {
-                    // Skip only heartbeat messages (msgType = 13)
-                    if (IsHeartbeatMessage(ccgMessage))
-                        return;
-                    
-                    // Mark if this is historical data (during rewind)
-                    ccgMessage.IsHistorical = _isRewindInProgress;
-                    ccgMessage.RcSequenceNumber = rcSequenceNumber;
-                    
-                    // Track sequence numbers
-                    if (rcSequenceNumber > _lastProcessedSequenceNumber)
-                        _lastProcessedSequenceNumber = rcSequenceNumber;
-                    
-                    // Update ObservableCollection on UI thread
-                    _dispatcher.Invoke(() =>
+                    // Add to collection (on UI thread)
+                    System.Windows.Application.Current?.Dispatcher.Invoke(() =>
                     {
-                        // Add to collection (limit to last 2000 messages for performance)
-                        if (_ccgMessages.Count >= 2000)
+                        // Maintain size limit
+                        while (_ccgMessages.Count >= MAX_MESSAGES)
                         {
-                            _ccgMessages.RemoveAt(_ccgMessages.Count - 1);
+                            _ccgMessages.RemoveAt(0);
                         }
-                        
-                        // Insert at beginning for chronological order (newest first)
-                        if (_isRewindInProgress)
-                        {
-                            // During rewind, add at the end to maintain chronological order
-                            _ccgMessages.Add(ccgMessage);
-                        }
-                        else
-                        {
-                            // Real-time messages go to the top
-                            _ccgMessages.Insert(0, ccgMessage);
-                        }
+
+                        // Insert at beginning for newest-first display
+                        _ccgMessages.Insert(0, ccgMessage);
                     });
+
+                    // Notify subscribers
+                    NewCcgMessageReceived?.Invoke(ccgMessage);
                 }
             }
             catch (Exception ex)
             {
-                // Log error but don't crash
-                Console.WriteLine($"Error parsing CCG message: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error processing CCG message: {ex.Message}");
             }
         }
-        
-        private void OnRewindCompleted()
+
+        public void ClearMessages()
         {
-            Console.WriteLine($"Rewind completed. Loaded {_ccgMessages.Count} historical CCG messages.");
-            
-            _isRewindInProgress = false;
-            
-            // Update UI on UI thread
-            _dispatcher.Invoke(() =>
+            System.Windows.Application.Current?.Dispatcher.Invoke(() =>
             {
-                // Reverse the order of historical messages so newest are first
-                var historicalMessages = new List<CcgMessage>(_ccgMessages);
                 _ccgMessages.Clear();
-                
-                // Add messages in reverse order (newest first)
-                for (int i = historicalMessages.Count - 1; i >= 0; i--)
-                {
-                    _ccgMessages.Add(historicalMessages[i]);
-                }
             });
-            
-            // Notify subscribers
-            HistoricalMessagesLoaded?.Invoke(_ccgMessages.Count);
-            RewindCompleted?.Invoke();
+            MessagesCleared?.Invoke();
         }
-        
-        public void StartRewind()
+
+        public ObservableCollection<CcgMessage> GetFilteredMessages(
+            string messageTypeFilter = null,
+            string sideFilter = null,
+            uint? instrumentIdFilter = null,
+            DateTime? fromTime = null,
+            DateTime? toTime = null)
         {
-            _isRewindInProgress = true;
-            Console.WriteLine("Starting rewind operation...");
-        }
-        
-        private bool IsHeartbeatMessage(CcgMessage ccgMessage)
-        {
-            // Based on documentation:
-            // 1. Heartbeat messages have msgType = 13
-            // 2. "A message consisting of just a header is a heartbeat"
-            
-            if (ccgMessage.Name == "Heartbeat")
-                return true;
-                
-            // Additional check: if message has only header data (16 bytes) and no significant payload
-            if (ccgMessage.RawData.Length == 16)
-                return true;
-                
-            return false;
-        }
-        
-        private CcgMessage ParseCcgMessage(byte[] data)
-        {
-            // Handle messages of any length, minimum header is 16 bytes
-            if (data.Length < 16)
+            var filtered = new ObservableCollection<CcgMessage>();
+
+            foreach (var msg in _ccgMessages)
             {
-                // Very short messages - still try to parse what we can
-                var shortMessage = new CcgMessage
+                bool include = true;
+
+                // Message type filter
+                if (!string.IsNullOrEmpty(messageTypeFilter) && 
+                    !msg.Name.Contains(messageTypeFilter, StringComparison.OrdinalIgnoreCase))
                 {
-                    DateReceived = DateTime.Now,
-                    RawData = data,
-                    RawMessage = BitConverter.ToString(data),
-                    Header = $"Short message ({data.Length} bytes)",
-                    Name = "Unknown",
-                    TransactTime = DateTime.Now,
-                    IsHistorical = _isRewindInProgress,
-                    RcSequenceNumber = 0
-                };
-                return shortMessage;
-            }
-                
-            try
-            {
-                var ccgMessage = new CcgMessage
-                {
-                    DateReceived = DateTime.Now,
-                    RawData = data,
-                    RawMessage = BitConverter.ToString(data),
-                    IsHistorical = _isRewindInProgress,
-                    RcSequenceNumber = 0
-                };
-                
-                // Parse GPW WATS binary message header (based on documentation)
-                // Header structure: length(2) + msgType(2) + seqNum(4) + timestamp(8)
-                
-                ushort messageLength = BitConverter.ToUInt16(data, 0);
-                ushort msgType = BitConverter.ToUInt16(data, 2);
-                uint seqNum = BitConverter.ToUInt32(data, 4);
-                ulong timestamp = BitConverter.ToUInt64(data, 8);
-                
-                ccgMessage.MsgSeqNum = seqNum;
-                ccgMessage.Header = $"Len:{messageLength} Type:{msgType} Seq:{seqNum}";
-                ccgMessage.Name = GetMessageTypeName(msgType);
-                
-                // Convert timestamp to DateTime (assuming nanoseconds since epoch)
-                try
-                {
-                    var epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-                    ccgMessage.TransactTime = epoch.AddTicks((long)(timestamp / 100)); // Convert nanoseconds to ticks
+                    include = false;
                 }
-                catch
+
+                // Side filter
+                if (!string.IsNullOrEmpty(sideFilter) && 
+                    !string.Equals(msg.Side, sideFilter, StringComparison.OrdinalIgnoreCase))
                 {
-                    ccgMessage.TransactTime = DateTime.Now;
+                    include = false;
                 }
-                
-                // Parse message-specific fields based on message type
-                ParseMessageSpecificFields(ccgMessage, msgType, data);
-                
-                return ccgMessage;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error parsing CCG message details: {ex.Message}");
-                
-                // Return a basic message with raw data if parsing fails
-                return new CcgMessage
+
+                // Instrument ID filter
+                if (instrumentIdFilter.HasValue && msg.InstrumentId != instrumentIdFilter.Value)
                 {
-                    DateReceived = DateTime.Now,
-                    RawData = data,
-                    RawMessage = BitConverter.ToString(data),
-                    Header = $"Parse error ({data.Length} bytes)",
-                    Name = "ParseError",
-                    TransactTime = DateTime.Now,
-                    IsHistorical = _isRewindInProgress,
-                    RcSequenceNumber = 0
-                };
+                    include = false;
+                }
+
+                // Time range filter
+                if (fromTime.HasValue && msg.DateReceived < fromTime.Value)
+                {
+                    include = false;
+                }
+
+                if (toTime.HasValue && msg.DateReceived > toTime.Value)
+                {
+                    include = false;
+                }
+
+                if (include)
+                {
+                    filtered.Add(msg);
+                }
             }
+
+            return filtered;
         }
-        
-        private void ParseMessageSpecificFields(CcgMessage ccgMessage, ushort msgType, byte[] data)
+
+        public int GetMessageCount() => _ccgMessages.Count;
+
+        public int GetMessageCountByType(string messageType)
         {
-            try
+            return _ccgMessages.Count(m => 
+                string.Equals(m.Name, messageType, StringComparison.OrdinalIgnoreCase));
+        }
+
+        public CcgMessage GetLatestMessageByType(string messageType)
+        {
+            return _ccgMessages.FirstOrDefault(m => 
+                string.Equals(m.Name, messageType, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // Statistics methods
+        public (int Orders, int Trades, int Cancels, int Others) GetMessageStatistics()
+        {
+            int orders = 0, trades = 0, cancels = 0, others = 0;
+
+            foreach (var msg in _ccgMessages)
             {
-                switch (msgType)
+                switch (msg.Name.ToLower())
                 {
-                    case 2: // Login
-                        ParseLogin(ccgMessage, data);
+                    case "orderadd":
+                    case "orderaddresponse":
+                    case "ordermodify":
+                    case "ordermodifyresponse":
+                        orders++;
                         break;
-                    case 3: // LoginResponse
-                        ParseLoginResponse(ccgMessage, data);
+                    case "trade":
+                    case "tradecapturereportsingle":
+                    case "tradecapturereportdual":
+                        trades++;
                         break;
-                    case 4: // OrderAdd
-                        ParseOrderAdd(ccgMessage, data);
-                        break;
-                    case 5: // OrderAddResponse  
-                        ParseOrderAddResponse(ccgMessage, data);
-                        break;
-                    case 6: // OrderCancel
-                        ParseOrderCancel(ccgMessage, data);
-                        break;
-                    case 7: // OrderCancelResponse
-                        ParseOrderCancelResponse(ccgMessage, data);
-                        break;
-                    case 8: // OrderModify
-                        ParseOrderModify(ccgMessage, data);
-                        break;
-                    case 9: // OrderModifyResponse
-                        ParseOrderModifyResponse(ccgMessage, data);
-                        break;
-                    case 10: // Trade
-                        ParseTrade(ccgMessage, data);
-                        break;
-                    case 11: // Logout
-                        ParseLogout(ccgMessage, data);
-                        break;
-                    case 12: // ConnectionClose
-                        ParseConnectionClose(ccgMessage, data);
-                        break;
-                    case 13: // Heartbeat - should be filtered out but just in case
-                        ParseHeartbeat(ccgMessage, data);
-                        break;
-                    case 14: // LogoutResponse
-                        ParseLogoutResponse(ccgMessage, data);
-                        break;
-                    case 15: // Reject
-                        ParseReject(ccgMessage, data);
-                        break;
-                    case 18: // TradeCaptureReportSingle
-                        ParseTradeCaptureReportSingle(ccgMessage, data);
-                        break;
-                    case 19: // TradeCaptureReportDual
-                        ParseTradeCaptureReportDual(ccgMessage, data);
-                        break;
-                    case 20: // TradeCaptureReportResponse
-                        ParseTradeCaptureReportResponse(ccgMessage, data);
-                        break;
-                    case 23: // TradeBust
-                        ParseTradeBust(ccgMessage, data);
-                        break;
-                    case 24: // MassQuote
-                        ParseMassQuote(ccgMessage, data);
-                        break;
-                    case 25: // MassQuoteResponse
-                        ParseMassQuoteResponse(ccgMessage, data);
-                        break;
-                    case 28: // RequestForExecution
-                        ParseRequestForExecution(ccgMessage, data);
-                        break;
-                    case 29: // OrderMassCancel
-                        ParseOrderMassCancel(ccgMessage, data);
-                        break;
-                    case 30: // OrderMassCancelResponse
-                        ParseOrderMassCancelResponse(ccgMessage, data);
-                        break;
-                    case 31: // BidOfferUpdate
-                        ParseBidOfferUpdate(ccgMessage, data);
-                        break;
-                    case 32: // MarketMakerCommand
-                        ParseMarketMakerCommand(ccgMessage, data);
-                        break;
-                    case 33: // MarketMakerCommandResponse
-                        ParseMarketMakerCommandResponse(ccgMessage, data);
-                        break;
-                    case 34: // GapFill
-                        ParseGapFill(ccgMessage, data);
+                    case "ordercancel":
+                    case "ordercancelresponse":
+                    case "ordermasscancel":
+                    case "ordermasscancelresponse":
+                        cancels++;
                         break;
                     default:
-                        // For unknown message types, try to extract basic information
-                        ParseGenericMessage(ccgMessage, data);
+                        others++;
                         break;
                 }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error parsing message type {msgType}: {ex.Message}");
-                // Set basic info even if parsing fails
-                ccgMessage.Symbol = $"ParseError-{msgType}";
-            }
+
+            return (orders, trades, cancels, others);
         }
-        
-        private string GetMessageTypeName(ushort msgType)
-        {
-            // Based on GPW WATS documentation message types
-            switch (msgType)
-            {
-                case 2: return "Login";
-                case 3: return "LoginResponse";
-                case 4: return "OrderAdd";
-                case 5: return "OrderAddResponse";
-                case 6: return "OrderCancel";
-                case 7: return "OrderCancelResponse";
-                case 8: return "OrderModify";
-                case 9: return "OrderModifyResponse";
-                case 10: return "Trade";
-                case 11: return "Logout";
-                case 12: return "ConnectionClose";
-                case 13: return "Heartbeat";
-                case 14: return "LogoutResponse";
-                case 15: return "Reject";
-                case 18: return "TradeCaptureReportSingle";
-                case 19: return "TradeCaptureReportDual";
-                case 20: return "TradeCaptureReportResponse";
-                case 23: return "TradeBust";
-                case 24: return "MassQuote";
-                case 25: return "MassQuoteResponse";
-                case 28: return "RequestForExecution";
-                case 29: return "OrderMassCancel";
-                case 30: return "OrderMassCancelResponse";
-                case 31: return "BidOfferUpdate";
-                case 32: return "MarketMakerCommand";
-                case 33: return "MarketMakerCommandResponse";
-                case 34: return "GapFill";
-                default: return $"Unknown({msgType})";
-            }
-        }
-        
-        public void Clear()
-        {
-            _dispatcher.Invoke(() =>
-            {
-                _ccgMessages.Clear();
-                _lastProcessedSequenceNumber = 0;
-            });
-        }
-        
-        // Placeholder methods for all the parsing functions
-        private void ParseLogin(CcgMessage ccgMessage, byte[] data) { ccgMessage.Symbol = "LOGIN"; }
-        private void ParseLoginResponse(CcgMessage ccgMessage, byte[] data) { ccgMessage.Symbol = "LOGIN_RESP"; }
-        private void ParseLogout(CcgMessage ccgMessage, byte[] data) { ccgMessage.Symbol = "LOGOUT"; }
-        private void ParseLogoutResponse(CcgMessage ccgMessage, byte[] data) { ccgMessage.Symbol = "LOGOUT_RESP"; }
-        private void ParseConnectionClose(CcgMessage ccgMessage, byte[] data) { ccgMessage.Symbol = "CONN_CLOSE"; }
-        private void ParseHeartbeat(CcgMessage ccgMessage, byte[] data) { ccgMessage.Symbol = "HEARTBEAT"; }
-        private void ParseReject(CcgMessage ccgMessage, byte[] data) { ccgMessage.Symbol = "REJECT"; }
-        private void ParseTradeBust(CcgMessage ccgMessage, byte[] data) { ccgMessage.Symbol = "TRADE_BUST"; }
-        private void ParseTradeCaptureReportSingle(CcgMessage ccgMessage, byte[] data) { ccgMessage.Symbol = "TCR_SINGLE"; }
-        private void ParseTradeCaptureReportDual(CcgMessage ccgMessage, byte[] data) { ccgMessage.Symbol = "TCR_DUAL"; }
-        private void ParseTradeCaptureReportResponse(CcgMessage ccgMessage, byte[] data) { ccgMessage.Symbol = "TCR_RESP"; }
-        private void ParseMassQuote(CcgMessage ccgMessage, byte[] data) { ccgMessage.Symbol = "MASS_QUOTE"; }
-        private void ParseMassQuoteResponse(CcgMessage ccgMessage, byte[] data) { ccgMessage.Symbol = "MASS_QUOTE_RESP"; }
-        private void ParseRequestForExecution(CcgMessage ccgMessage, byte[] data) { ccgMessage.Symbol = "RFE"; }
-        private void ParseOrderMassCancel(CcgMessage ccgMessage, byte[] data) { ccgMessage.Symbol = "MASS_CANCEL"; }
-        private void ParseOrderMassCancelResponse(CcgMessage ccgMessage, byte[] data) { ccgMessage.Symbol = "MASS_CANCEL_RESP"; }
-        private void ParseBidOfferUpdate(CcgMessage ccgMessage, byte[] data) { ccgMessage.Symbol = "BID_OFFER"; }
-        private void ParseMarketMakerCommand(CcgMessage ccgMessage, byte[] data) { ccgMessage.Symbol = "MM_CMD"; }
-        private void ParseMarketMakerCommandResponse(CcgMessage ccgMessage, byte[] data) { ccgMessage.Symbol = "MM_CMD_RESP"; }
-        private void ParseGapFill(CcgMessage ccgMessage, byte[] data) { ccgMessage.Symbol = "GAP_FILL"; }
-        private void ParseOrderAdd(CcgMessage ccgMessage, byte[] data) { ccgMessage.Symbol = "ORDER_ADD"; }
-        private void ParseOrderAddResponse(CcgMessage ccgMessage, byte[] data) { ccgMessage.Symbol = "ORDER_ADD_RESP"; }
-        private void ParseOrderCancel(CcgMessage ccgMessage, byte[] data) { ccgMessage.Symbol = "ORDER_CANCEL"; }
-        private void ParseOrderCancelResponse(CcgMessage ccgMessage, byte[] data) { ccgMessage.Symbol = "ORDER_CANCEL_RESP"; }
-        private void ParseOrderModify(CcgMessage ccgMessage, byte[] data) { ccgMessage.Symbol = "ORDER_MODIFY"; }
-        private void ParseOrderModifyResponse(CcgMessage ccgMessage, byte[] data) { ccgMessage.Symbol = "ORDER_MODIFY_RESP"; }
-        private void ParseTrade(CcgMessage ccgMessage, byte[] data) { ccgMessage.Symbol = "TRADE"; }
-        private void ParseGenericMessage(CcgMessage ccgMessage, byte[] data) { ccgMessage.Symbol = "UNKNOWN"; }
     }
 }

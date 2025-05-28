@@ -1,3 +1,4 @@
+<!-- Views/MessagesTabControl.xaml -->
 <UserControl x:Class="RC_GUI_WATS.Views.MessagesTabControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -5,12 +6,15 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:views="clr-namespace:RC_GUI_WATS.Views"
              mc:Ignorable="d">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="2*"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="3*"/>
+            <RowDefinition Height="200"/>
+            <RowDefinition Height="5"/>
+            <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         
@@ -18,6 +22,7 @@
         <Grid Grid.Row="0" Margin="5">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="250"/>
+                <ColumnDefinition Width="200"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
@@ -76,8 +81,21 @@
                 </Grid>
             </Border>
             
+            <!-- CCG Statistics -->
+            <Border BorderBrush="DarkGray" BorderThickness="1" Grid.Column="1" Margin="5,0,0,0">
+                <StackPanel Margin="5">
+                    <TextBlock Text="CCG Messages" FontWeight="Bold" Margin="0,0,0,5"/>
+                    <TextBlock Text="{Binding CcgMessageCountText}" FontSize="11"/>
+                    <TextBlock Text="{Binding CcgStatisticsText}" FontSize="11" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                    
+                    <!-- CCG Actions -->
+                    <Button Content="Clear CCG" Command="{Binding ClearCcgMessagesCommand}" 
+                            Margin="0,10,0,0" Padding="5,2" FontSize="10"/>
+                </StackPanel>
+            </Border>
+            
             <!-- Heartbeat indicator in the top right -->
-            <StackPanel Grid.Column="2" VerticalAlignment="Top" Margin="10,0,0,0">
+            <StackPanel Grid.Column="3" VerticalAlignment="Top" Margin="10,0,0,0">
                 <TextBlock Text="RC Server Status:" FontSize="11" Margin="0,0,0,2" Foreground="Gray"/>
                 <views:HeartbeatIndicatorControl DataContext="{Binding HeartbeatIndicator}"/>
             </StackPanel>
@@ -98,41 +116,131 @@
             </DataGrid.Columns>
         </DataGrid>
         
-        <!-- CCG Messages Header -->
-        <Grid Grid.Row="2" Margin="5,10,5,5">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-            
-            <TextBlock Grid.Column="0" Text="CCG Messages" FontWeight="Bold" FontSize="14" VerticalAlignment="Center"/>
-            <Button Grid.Column="1" Content="Rewind" Command="{Binding RewindCommand}"
-                    Padding="10,2" Margin="5,0"/>
-            <Button Grid.Column="2" Content="Clear" Command="{Binding ClearCcgMessagesCommand}"
-                    Padding="10,2" Margin="5,0,0,0"/>
-        </Grid>
+        <!-- Splitter -->
+        <GridSplitter Grid.Row="2" Height="5" HorizontalAlignment="Stretch" 
+                      Background="LightGray" ResizeDirection="Rows"/>
         
-        <!-- CCG Messages DataGrid -->
-        <DataGrid Grid.Row="3" AutoGenerateColumns="False" 
-                  ItemsSource="{Binding CcgMessages}"
-                  CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True" 
-                  Margin="5" AlternatingRowBackground="AliceBlue" 
-                  GridLinesVisibility="All" FontFamily="Consolas" FontSize="10"
-                  LoadingRow="CcgDataGrid_LoadingRow" HeadersVisibility="All">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Type" Binding="{Binding TypeIndicator}" Width="40"/>
-                <DataGridTextColumn Header="Header" Binding="{Binding Header}" Width="150"/>
-                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="120"/>
-                <DataGridTextColumn Header="MsgSeqNum" Binding="{Binding MsgSeqNum}" Width="80"/>
-                <DataGridTextColumn Header="Date Received" Binding="{Binding DateReceivedString}" Width="130"/>
-                <DataGridTextColumn Header="Transact Time" Binding="{Binding TransactTimeString}" Width="90"/>
-                <DataGridTextColumn Header="Price" Binding="{Binding PriceString}" Width="100"/>
-                <DataGridTextColumn Header="Side" Binding="{Binding Side}" Width="50"/>
-                <DataGridTextColumn Header="Symbol(ISIN)" Binding="{Binding Symbol}" Width="120"/>
-                <DataGridTextColumn Header="ClientOrderID" Binding="{Binding ClientOrderID}" Width="120"/>
-            </DataGrid.Columns>
-        </DataGrid>
+        <!-- CCG Messages Section -->
+        <Grid Grid.Row="3" Margin="5">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            
+            <!-- CCG Messages Header and Filters -->
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,5">
+                <TextBlock Text="CCG Messages" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                
+                <!-- Filters -->
+                <TextBlock Text="Type:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <TextBox Text="{Binding MessageTypeFilter, UpdateSourceTrigger=PropertyChanged}" 
+                         Width="100" Height="22" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                
+                <TextBlock Text="Side:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <ComboBox SelectedItem="{Binding SideFilter}" Width="80" Height="22" VerticalAlignment="Center" Margin="0,0,10,0">
+                    <ComboBoxItem Content=""/>
+                    <ComboBoxItem Content="Buy"/>
+                    <ComboBoxItem Content="Sell"/>
+                    <ComboBoxItem Content="Trade"/>
+                    <ComboBoxItem Content="Dual"/>
+                </ComboBox>
+                
+                <TextBlock Text="InstrumentID:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <TextBox Text="{Binding InstrumentIdFilter, UpdateSourceTrigger=PropertyChanged}" 
+                         Width="80" Height="22" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                
+                <Button Content="Clear Filters" Command="{Binding ClearFiltersCommand}" 
+                        Padding="5,2" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        
+                <CheckBox x:Name="ShowRawDataCheckBox" Content="Show Raw" VerticalAlignment="Center" Margin="5,0,0,0"/>
+            </StackPanel>
+            
+            <!-- CCG Messages DataGrid -->
+            <DataGrid Grid.Row="1" AutoGenerateColumns="False" 
+                      ItemsSource="{Binding CcgMessages}"
+                      CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True"
+                      AlternatingRowBackground="AliceBlue" GridLinesVisibility="All"
+                      FontSize="10" RowHeight="20">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Header" Binding="{Binding Header}" Width="50">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="ToolTip" Value="{Binding RawDataShort}"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="120"/>
+                    <DataGridTextColumn Header="Date Received" Binding="{Binding DateReceivedDisplay}" Width="85"/>
+                    <DataGridTextColumn Header="Transact Time" Binding="{Binding TransactTimeDisplay}" Width="85"/>
+                    <DataGridTextColumn Header="Price" Binding="{Binding PriceDisplay}" Width="70">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="HorizontalAlignment" Value="Right"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Qty" Binding="{Binding QuantityDisplay}" Width="60">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="HorizontalAlignment" Value="Right"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Side" Binding="{Binding Side}" Width="60">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="HorizontalAlignment" Value="Center"/>
+                                <Style.Triggers>
+                                    <Trigger Property="Text" Value="Buy">
+                                        <Setter Property="Foreground" Value="Green"/>
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                    </Trigger>
+                                    <Trigger Property="Text" Value="Sell">
+                                        <Setter Property="Foreground" Value="Red"/>
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                    </Trigger>
+                                    <Trigger Property="Text" Value="Trade">
+                                        <Setter Property="Foreground" Value="Blue"/>
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="InstrumentId" Binding="{Binding InstrumentIdDisplay}" Width="80"/>
+                    <DataGridTextColumn Header="ClientOrderId" Binding="{Binding ClientOrderId}" Width="120"/>
+                    <DataGridTextColumn Header="Raw Data" Binding="{Binding RawDataShort}" Width="200" Visibility="{Binding IsChecked, ElementName=ShowRawDataCheckBox, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                </DataGrid.Columns>
+                
+                <!-- Row styling based on message type -->
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Setter Property="ToolTip" Value="{Binding RawDataHex}"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Name}" Value="OrderAdd">
+                                <Setter Property="Background" Value="LightGreen"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Name}" Value="Trade">
+                                <Setter Property="Background" Value="LightBlue"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Name}" Value="OrderCancel">
+                                <Setter Property="Background" Value="LightCoral"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Header}" Value="ERROR">
+                                <Setter Property="Background" Value="Yellow"/>
+                            </DataTrigger>
+                            <!-- Highlight suspicious Login messages -->
+                            <DataTrigger Binding="{Binding Name}" Value="Login">
+                                <Setter Property="Background" Value="Orange"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Name}" Value="LoginResponse">
+                                <Setter Property="Background" Value="Orange"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+            </DataGrid>
+        </Grid>
         
         <!-- Buttons panel -->
         <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Left" Margin="5">

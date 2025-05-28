@@ -17,16 +17,14 @@ namespace RC_GUI_WATS
 
         private void ConfigureServices()
         {
-            // Create services in the proper order to avoid threading issues
+            // Create a simple service container
             var configService = new ConfigurationService();
             var clientService = new RcTcpClientService();
-            
-            // These services handle UI thread marshalling internally
             var positionsService = new PositionsService(clientService);
             var capitalService = new CapitalService(clientService);
             var limitsService = new LimitsService(clientService);
             var instrumentsService = new InstrumentsService();
-            var ccgMessagesService = new CcgMessagesService(clientService); // Add CCG Messages service
+            var ccgMessagesService = new CcgMessagesService(clientService); // Add CCG Messages Service
             
             // Create heartbeat monitor service
             var heartbeatMonitorService = new HeartbeatMonitorService(clientService);
@@ -41,7 +39,7 @@ namespace RC_GUI_WATS
                 instrumentsService,
                 configService,  
                 heartbeatMonitorService,
-                ccgMessagesService); // Add CCG Messages service to constructor
+                ccgMessagesService); // Add CCG Messages Service to constructor
 
             mainWindow.DataContext = mainViewModel;
             mainWindow.Show();
