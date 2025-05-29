@@ -270,7 +270,7 @@
                             
                             <!-- Cancel messages - light coral -->
                             <DataTrigger Binding="{Binding Name}" Value="OrderCancel">
-                                <Setter Property="Background" Value="#F08080"/>
+                                <Setter Property="Background" Value="Red"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding Name}" Value="OrderCancelResponse">
                                 <Setter Property="Background" Value="#F08080"/>

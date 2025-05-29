@@ -89,6 +89,7 @@ namespace RC_GUI_WATS.Services
                     case CcgMessageType.MassQuoteResponse:
                         ParseMassQuoteResponse(data, message);
                         break;
+                    
                     default:
                         // For other message types, just parse basic info
                         break;
