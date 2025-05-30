@@ -4,40 +4,274 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    </UserControl.Resources>
+    
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         
-        <!-- Control panel with Source file button -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="5">
-            <Button Content="Source file" Command="{Binding SelectInstrumentsFileCommand}"
-                    Padding="5,2" Margin="0,0,5,0"/>
-            <TextBlock Text="{Binding InstrumentsFilePath, TargetNullValue='No file selected'}" 
-                    VerticalAlignment="Center" Margin="5,0,0,0"/>
-        </StackPanel>
+        <!-- File selection and control panel -->
+        <Border Grid.Row="0" Background="#F0F8FF" BorderBrush="LightGray" BorderThickness="1" Margin="5">
+            <StackPanel Orientation="Horizontal" Margin="10,5">
+                <Button Content="Source file" Command="{Binding SelectInstrumentsFileCommand}"
+                        Padding="10,3" Margin="0,0,10,0" FontWeight="SemiBold"/>
+                <TextBlock Text="{Binding InstrumentsFilePath}" VerticalAlignment="Center" 
+                          FontFamily="Consolas" Foreground="DarkBlue" Margin="0,0,15,0"/>
+                <Button Content="Refresh" Command="{Binding RefreshCommand}"
+                        Padding="8,3" Margin="0,0,10,0"/>
+                        
+                <!-- Loading indicator -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" 
+                           Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <ProgressBar Width="100" Height="16" IsIndeterminate="True" Margin="0,0,10,0"/>
+                    <TextBlock Text="Loading..." FontStyle="Italic" Foreground="Gray"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
         
         <!-- Instruments DataGrid -->
         <DataGrid Grid.Row="1" ItemsSource="{Binding Instruments}" AutoGenerateColumns="False" 
-                CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True" 
-                Margin="5" AlternatingRowBackground="AliceBlue" GridLinesVisibility="All">
+                  CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True" 
+                  Margin="5" AlternatingRowBackground="#F9F9F9" 
+                  GridLinesVisibility="Horizontal" RowHeight="22"
+                  ScrollViewer.CanContentScroll="True" 
+                  ScrollViewer.VerticalScrollBarVisibility="Auto"
+                  ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                  LoadingRow="InstrumentsDataGrid_LoadingRow">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="#" Binding="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type DataGridRow}}, Path=Header}" Width="40"/>
-                <DataGridTextColumn Header="InstrumentID" Binding="{Binding InstrumentID}" Width="90"/>
-                <DataGridTextColumn Header="ISIN" Binding="{Binding ISIN}" Width="120"/>
-                <DataGridTextColumn Header="ProductCode" Binding="{Binding ProductCode}" Width="100"/>
-                <DataGridTextColumn Header="ReferencePrice" Binding="{Binding ReferencePrice, StringFormat=N8}" Width="120"/>
-                <DataGridTextColumn Header="Multiplier" Binding="{Binding Multiplier, StringFormat=N8}" Width="90"/>
-                <DataGridTextColumn Header="MIC" Binding="{Binding MIC}" Width="70"/>
-                <!-- Additional columns as needed - can be simplified to just show key fields -->
-                <DataGridTextColumn Header="InstrumentType" Binding="{Binding InstrumentType}" Width="120"/>
-                <DataGridTextColumn Header="InstrumentSubtype" Binding="{Binding InstrumentSubtype}" Width="140"/>
-                <DataGridTextColumn Header="MarketStructureName" Binding="{Binding MarketStructureName}" Width="160"/>
-                <DataGridTextColumn Header="Currency" Binding="{Binding Currency}" Width="80"/>
-                <DataGridTextColumn Header="ProductName" Binding="{Binding ProductName}" Width="120"/>
-                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="70"/>
+                <!-- Row number -->
+                <DataGridTextColumn Header="#" Width="40" IsReadOnly="True">
+                    <DataGridTextColumn.Binding>
+                        <Binding RelativeSource="{RelativeSource FindAncestor, AncestorType={x:Type DataGridRow}}" 
+                                Path="Header"/>
+                    </DataGridTextColumn.Binding>
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                            <Setter Property="FontSize" Value="10"/>
+                            <Setter Property="Foreground" Value="Gray"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                
+                <!-- Key identification columns -->
+                <DataGridTextColumn Header="InstrumentID" Binding="{Binding InstrumentID}" Width="90">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="FontFamily" Value="Consolas"/>
+                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                
+                <DataGridTextColumn Header="ISIN" Binding="{Binding ISIN}" Width="120">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="FontFamily" Value="Consolas"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                
+                <DataGridTextColumn Header="Product Code" Binding="{Binding ProductCode}" Width="100">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="FontFamily" Value="Consolas"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                
+                <!-- Main descriptive columns -->
+                <DataGridTextColumn Header="Product Name" Binding="{Binding ProductName}" Width="200"/>
+                
+                <DataGridTextColumn Header="Instrument Type" Binding="{Binding InstrumentType}" Width="120">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                            <Style.Triggers>
+                                <Trigger Property="Text" Value="Equity">
+                                    <Setter Property="Foreground" Value="DarkGreen"/>
+                                </Trigger>
+                                <Trigger Property="Text" Value="Bond">
+                                    <Setter Property="Foreground" Value="DarkBlue"/>
+                                </Trigger>
+                                <Trigger Property="Text" Value="Future">
+                                    <Setter Property="Foreground" Value="DarkRed"/>
+                                </Trigger>
+                                <Trigger Property="Text" Value="Option">
+                                    <Setter Property="Foreground" Value="Purple"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                
+                <DataGridTextColumn Header="Subtype" Binding="{Binding InstrumentSubtype}" Width="120"/>
+                
+                <!-- Market information -->
+                <DataGridTextColumn Header="Currency" Binding="{Binding Currency}" Width="70">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                
+                <DataGridTextColumn Header="MIC" Binding="{Binding MIC}" Width="60">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                            <Setter Property="FontFamily" Value="Consolas"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                
+                <!-- Pricing information -->
+                <DataGridTextColumn Header="Reference Price" Binding="{Binding ReferencePrice, StringFormat=N4}" Width="110">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                            <Setter Property="FontFamily" Value="Consolas"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                
+                <DataGridTextColumn Header="Multiplier" Binding="{Binding Multiplier, StringFormat=N2}" Width="80">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                            <Setter Property="FontFamily" Value="Consolas"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                
+                <DataGridTextColumn Header="Lot Size" Binding="{Binding LotSize}" Width="80">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                            <Setter Property="FontFamily" Value="Consolas"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                
+                <!-- Market structure -->
+                <DataGridTextColumn Header="Market Structure" Binding="{Binding MarketStructureName}" Width="140"/>
+                <DataGridTextColumn Header="Market Model" Binding="{Binding MarketModelType}" Width="120"/>
+                
+                <!-- Status and additional info -->
+                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="60">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                            <Style.Triggers>
+                                <Trigger Property="Text" Value="1">
+                                    <Setter Property="Foreground" Value="Green"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                </Trigger>
+                                <Trigger Property="Text" Value="0">
+                                    <Setter Property="Foreground" Value="Red"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                
+                <DataGridTextColumn Header="CFI Code" Binding="{Binding CFICode}" Width="80">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="FontFamily" Value="Consolas"/>
+                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                
+                <DataGridTextColumn Header="Country" Binding="{Binding IssuerRegCountry}" Width="70">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                
+                <!-- Liquidity indicator -->
+                <DataGridCheckBoxColumn Header="Liquidity" Binding="{Binding Liquidity}" Width="70"/>
+                
+                <!-- Strike price for options/futures -->
+                <DataGridTextColumn Header="Strike Price" Binding="{Binding StrikePrice, StringFormat=N4}" Width="100">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                            <Setter Property="FontFamily" Value="Consolas"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                
+                <!-- Trading dates -->
+                <DataGridTextColumn Header="First Trading" Binding="{Binding FirstTradingDate, StringFormat=yyyy-MM-dd}" Width="100">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="FontFamily" Value="Consolas"/>
+                            <Setter Property="FontSize" Value="10"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                
+                <DataGridTextColumn Header="Last Trading" Binding="{Binding LastTradingDate, StringFormat=yyyy-MM-dd}" Width="100">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="FontFamily" Value="Consolas"/>
+                            <Setter Property="FontSize" Value="10"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
             </DataGrid.Columns>
+            
+            <!-- Row styling -->
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Setter Property="Height" Value="22"/>
+                    <Style.Triggers>
+                        <!-- Highlight rows based on instrument status -->
+                        <DataTrigger Binding="{Binding Status}" Value="0">
+                            <Setter Property="Background" Value="#FFE4E1"/>
+                            <Setter Property="Foreground" Value="DarkRed"/>
+                        </DataTrigger>
+                        
+                        <!-- Different background for different instrument types -->
+                        <DataTrigger Binding="{Binding InstrumentType}" Value="Equity">
+                            <Setter Property="Background" Value="#F0FFF0"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding InstrumentType}" Value="Bond">
+                            <Setter Property="Background" Value="#F0F8FF"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding InstrumentType}" Value="Future">
+                            <Setter Property="Background" Value="#FFF8DC"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding InstrumentType}" Value="Option">
+                            <Setter Property="Background" Value="#F5F0FF"/>
+                        </DataTrigger>
+                        
+                        <!-- Mouse over effect -->
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="#E6F3FF"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
         </DataGrid>
+        
+        <!-- Status bar -->
+        <Border Grid.Row="2" Background="LightGray" BorderBrush="Gray" BorderThickness="0,1,0,0">
+            <StackPanel Orientation="Horizontal" Margin="5,2">
+                <TextBlock Text="Status: " FontWeight="Bold"/>
+                <TextBlock Text="{Binding StatusText}"/>
+            </StackPanel>
+        </Border>
     </Grid>
 </UserControl>
