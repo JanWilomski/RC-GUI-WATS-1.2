@@ -86,7 +86,7 @@ namespace RC_GUI_WATS.Services
                 return true;
                 
             // Check for instrument types in parentheses (excluding (ALL))
-            if (message.Contains("(") && message.Contains(")")&&message!="(ALL)")
+            if (message.Contains("(") && message.Contains(")") && message != "(ALL)")
                 return true;
                 
             // Check for instrument groups in square brackets
@@ -106,64 +106,25 @@ namespace RC_GUI_WATS.Services
             if (limit == null)
                 return;
 
+            // Set received time to current time (when we got confirmation from server)
+            limit.ReceivedTime = DateTime.Now;
+
             // Check if such limit already exists
             var existingLimit = _controlLimits.FirstOrDefault(l =>
                 l.Scope == limit.Scope && l.Name == limit.Name);
 
             if (existingLimit != null)
             {
-                // Update existing limit
+                // Update existing limit value and received time
                 existingLimit.Value = limit.Value;
+                existingLimit.ReceivedTime = limit.ReceivedTime;
             }
             else
             {
-                // Add new limit with proper sorting
-                InsertLimitInSortedOrder(limit);
+                // Add new limit to the end of collection (chronological order)
+                // This happens only when we receive confirmation from server
+                _controlLimits.Add(limit);
             }
-        }
-
-        private void InsertLimitInSortedOrder(ControlLimit newLimit)
-        {
-            // Find the correct position to insert the new limit
-            // Sort order: (ALL) first, then instrument types, then groups, then individual ISINs
-            
-            int insertIndex = 0;
-            var newScopeType = newLimit.GetScopeType();
-            
-            for (int i = 0; i < _controlLimits.Count; i++)
-            {
-                var existingScopeType = _controlLimits[i].GetScopeType();
-                
-                // Compare scope types first
-                if ((int)newScopeType < (int)existingScopeType)
-                {
-                    insertIndex = i;
-                    break;
-                }
-                else if ((int)newScopeType == (int)existingScopeType)
-                {
-                    // Same scope type, compare by name then by scope value
-                    int nameComparison = string.Compare(newLimit.Name, _controlLimits[i].Name, StringComparison.OrdinalIgnoreCase);
-                    if (nameComparison < 0)
-                    {
-                        insertIndex = i;
-                        break;
-                    }
-                    else if (nameComparison == 0)
-                    {
-                        // Same name, compare by scope value
-                        if (string.Compare(newLimit.Scope, _controlLimits[i].Scope, StringComparison.OrdinalIgnoreCase) < 0)
-                        {
-                            insertIndex = i;
-                            break;
-                        }
-                    }
-                }
-                
-                insertIndex = i + 1;
-            }
-            
-            _controlLimits.Insert(insertIndex, newLimit);
         }
 
         public async Task LoadControlHistoryAsync()
@@ -174,10 +135,11 @@ namespace RC_GUI_WATS.Services
             // Clear existing data
             _controlLimits.Clear();
 
-            // Send request for control history
+            // Send request for control history - Get Controls History (G)
             await _clientService.SendGetControlsHistoryAsync();
 
-            // Updates will be handled by the message processor
+            // Updates will be handled by the message processor when server responds
+            // Server will send sequence of 'I' messages with control strings
         }
 
         public async Task SendControlLimitAsync(ControlLimit limit)
@@ -206,6 +168,38 @@ namespace RC_GUI_WATS.Services
             var isinCount = GetLimitCountByType(ScopeType.SingleInstrument);
             
             return $"Limity: ALL({allCount}), Typy({typeCount}), Grupy({groupCount}), ISIN({isinCount})";
+        }
+
+        // Helper methods for getting limits in different orders
+        public System.Collections.Generic.List<ControlLimit> GetLimitsChronological()
+        {
+            return _controlLimits.OrderBy(l => l.ReceivedTime).ToList();
+        }
+
+        public System.Collections.Generic.List<ControlLimit> GetLimitsHierarchical()
+        {
+            var sortedLimits = _controlLimits.ToList();
+            
+            sortedLimits.Sort((a, b) => 
+            {
+                // Get scope types using the enum
+                var aScopeType = a.GetScopeType();
+                var bScopeType = b.GetScopeType();
+                
+                // Compare by scope type priority first (enum values define priority)
+                if (aScopeType != bScopeType)
+                    return aScopeType.CompareTo(bScopeType);
+                
+                // Within same scope type, sort by limit name first
+                int nameComparison = string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
+                if (nameComparison != 0)
+                    return nameComparison;
+                
+                // If same limit name, sort by scope value
+                return string.Compare(a.Scope, b.Scope, StringComparison.OrdinalIgnoreCase);
+            });
+            
+            return sortedLimits;
         }
     }
 }

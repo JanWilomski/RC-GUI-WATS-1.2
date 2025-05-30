@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using RC_GUI_WATS.Commands;
@@ -47,7 +48,50 @@ namespace RC_GUI_WATS.ViewModels
             }
         }
         
-        // Properties for limits
+        // Properties for limits display mode
+        private LimitsDisplayMode _displayMode = LimitsDisplayMode.Hierarchical;
+        public LimitsDisplayMode DisplayMode
+        {
+            get => _displayMode;
+            set
+            {
+                if (SetProperty(ref _displayMode, value))
+                {
+                    RefreshDisplayedLimits();
+                    _fileLoggingService.LogSettings("Limits display mode changed", value.ToString());
+                }
+            }
+        }
+        
+        public bool IsChronologicalMode
+        {
+            get => DisplayMode == LimitsDisplayMode.Chronological;
+            set
+            {
+                if (value)
+                    DisplayMode = LimitsDisplayMode.Chronological;
+            }
+        }
+        
+        public bool IsHierarchicalMode
+        {
+            get => DisplayMode == LimitsDisplayMode.Hierarchical;
+            set
+            {
+                if (value)
+                    DisplayMode = LimitsDisplayMode.Hierarchical;
+            }
+        }
+        
+        // Displayed limits collection (sorted based on display mode)
+        private ObservableCollection<ControlLimit> _displayedLimits = new ObservableCollection<ControlLimit>();
+        public ObservableCollection<ControlLimit> DisplayedLimits
+        {
+            get => _displayedLimits;
+            set => SetProperty(ref _displayedLimits, value);
+        }
+        
+        // Original limits collection reference
         public ObservableCollection<ControlLimit> ControlLimits => _limitsService.ControlLimits;
         
         private string _limitsSummary;
@@ -55,6 +99,13 @@ namespace RC_GUI_WATS.ViewModels
         {
             get => _limitsSummary;
             set => SetProperty(ref _limitsSummary, value);
+        }
+        
+        private string _displayModeInfo;
+        public string DisplayModeInfo
+        {
+            get => _displayModeInfo;
+            set => SetProperty(ref _displayModeInfo, value);
         }
         
         // Properties for quick limit change
@@ -145,7 +196,7 @@ namespace RC_GUI_WATS.ViewModels
             _clientService.MessageReceived += OnMessageReceived;
             
             // Subscribe to limits collection changes
-            _limitsService.ControlLimits.CollectionChanged += (s, e) => UpdateLimitsSummary();
+            _limitsService.ControlLimits.CollectionChanged += OnLimitsCollectionChanged;
             
             // Initialize with default values
             QuickScopeTypeSelectedIndex = 0;
@@ -153,11 +204,78 @@ namespace RC_GUI_WATS.ViewModels
             QuickLimitValue = "";
             RawMessagesText = "";
             
-            // Initialize limits summary
+            // Initialize limits summary and display mode info
             UpdateLimitsSummary();
+            UpdateDisplayModeInfo();
+            RefreshDisplayedLimits();
             
             // Log initialization
             _fileLoggingService.LogSettings("Settings tab initialized", $"Server: {_serverIp}:{_serverPort}");
+        }
+        
+        private void OnLimitsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            RefreshDisplayedLimits();
+            UpdateLimitsSummary();
+        }
+        
+        private void RefreshDisplayedLimits()
+        {
+            var sourceList = _limitsService.ControlLimits.ToList();
+            
+            if (DisplayMode == LimitsDisplayMode.Chronological)
+            {
+                // Sort by received time (chronological order)
+                sourceList = sourceList.OrderBy(l => l.ReceivedTime).ToList();
+            }
+            else // Hierarchical
+            {
+                // Sort hierarchically: ALL -> Types -> Groups -> ISIN
+                sourceList.Sort((a, b) => 
+                {
+                    // Get scope types using the enum
+                    var aScopeType = a.GetScopeType();
+                    var bScopeType = b.GetScopeType();
+                    
+                    // Compare by scope type priority first (enum values define priority)
+                    if (aScopeType != bScopeType)
+                        return aScopeType.CompareTo(bScopeType);
+                    
+                    // Within same scope type, sort by limit name first
+                    int nameComparison = string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
+                    if (nameComparison != 0)
+                        return nameComparison;
+                    
+                    // If same limit name, sort by scope value
+                    return string.Compare(a.Scope, b.Scope, StringComparison.OrdinalIgnoreCase);
+                });
+            }
+            
+            // Update the displayed collection
+            _displayedLimits.Clear();
+            foreach (var limit in sourceList)
+            {
+                _displayedLimits.Add(limit);
+            }
+            
+            UpdateDisplayModeInfo();
+        }
+        
+        private void UpdateDisplayModeInfo()
+        {
+            if (DisplayMode == LimitsDisplayMode.Chronological)
+            {
+                DisplayModeInfo = $"Wyświetlanie: chronologiczne ({_displayedLimits.Count} limitów w kolejności otrzymania)";
+            }
+            else
+            {
+                var allCount = _displayedLimits.Count(l => l.GetScopeType() == ScopeType.AllInstruments);
+                var typeCount = _displayedLimits.Count(l => l.GetScopeType() == ScopeType.InstrumentType);
+                var groupCount = _displayedLimits.Count(l => l.GetScopeType() == ScopeType.InstrumentGroup);
+                var isinCount = _displayedLimits.Count(l => l.GetScopeType() == ScopeType.SingleInstrument);
+                
+                DisplayModeInfo = $"Wyświetlanie: hierarchiczne (ALL:{allCount}, Typy:{typeCount}, Grupy:{groupCount}, ISIN:{isinCount})";
+            }
         }
         
         private void OnMessageReceived(RcMessage message)
@@ -237,10 +355,17 @@ namespace RC_GUI_WATS.ViewModels
             }
             
             _fileLoggingService.LogSettings("Loading control history", "Sending get controls history request");
-            await _limitsService.LoadControlHistoryAsync();
             
-            // Update summary after loading
-            UpdateLimitsSummary();
+            // Clear existing limits before loading fresh data from server
+            _limitsService.ControlLimits.Clear();
+            
+            // Send Get Controls History (G) request
+            await _clientService.SendGetControlsHistoryAsync();
+            
+            // Small delay to allow server response to be processed
+            await Task.Delay(1000); // Longer delay for full reload
+            
+            _fileLoggingService.LogSettings("Control history load completed", "Server responded with control limits");
         }
         
         private void AddLimit()
@@ -253,11 +378,9 @@ namespace RC_GUI_WATS.ViewModels
                 var newLimit = addLimitWindow.ControlLimit;
                 if (newLimit != null)
                 {
-                    // Add to collection
-                    _limitsService.ControlLimits.Add(newLimit);
                     _fileLoggingService.LogControlLimit("Added new limit", newLimit.ToControlString());
                     
-                    // Send to server
+                    // Send to server - don't add locally, wait for server confirmation
                     SendControlLimit(newLimit);
                 }
             }
@@ -277,6 +400,9 @@ namespace RC_GUI_WATS.ViewModels
                     var message = $"Wysłano limit: {limit.ToControlString()}";
                     LogMessage(message);
                     _fileLoggingService.LogControlLimit("Sent control limit", limit.ToControlString());
+                    
+                    // Request updated control history after sending limit
+                    await RequestControlHistoryUpdate();
                 }
                 catch (Exception ex)
                 {
@@ -314,7 +440,7 @@ namespace RC_GUI_WATS.ViewModels
             {
                 try
                 {
-                    // Sort limits according to the 4-tier hierarchy: 1.ALL 2.Types 3.Groups 4.ISIN
+                    // Always use hierarchical sorting for file save (as before)
                     var sortedLimits = new System.Collections.Generic.List<ControlLimit>(_limitsService.ControlLimits);
                     
                     sortedLimits.Sort((a, b) => 
@@ -467,15 +593,30 @@ namespace RC_GUI_WATS.ViewModels
                 
                 string controlString = $"{QuickScopeValue},{limitType},{QuickLimitValue}";
                 
-                // Send to server
-                await _clientService.SendSetControlAsync(controlString);
-                
-                var logMessage = $"Wysłano limit: {controlString}";
-                LogMessage(logMessage);
-                _fileLoggingService.LogControlLimit("Applied quick limit", controlString);
-                
-                await LoadControlHistoryAsync();
-                UpdateLimitsSummary();
+                // Create ControlLimit object for validation and logging
+                var newLimit = ControlLimit.FromControlString(controlString);
+                if (newLimit != null)
+                {
+                    _fileLoggingService.LogControlLimit("Applied quick limit", controlString);
+                    
+                    // Send to server - don't add locally, wait for server confirmation
+                    await _limitsService.SendControlLimitAsync(newLimit);
+                    
+                    var logMessage = $"Wysłano limit: {controlString}";
+                    LogMessage(logMessage);
+                    
+                    // Request updated control history after sending limit
+                    await RequestControlHistoryUpdate();
+                    
+                    // Clear quick limit form
+                    QuickLimitValue = "";
+                    QuickScopeTypeSelectedIndex = 0; // Reset to "All instruments"
+                }
+                else
+                {
+                    _fileLoggingService.LogSettings("Apply quick limit failed", "Invalid control string format");
+                    MessageBox.Show("Błąd: nieprawidłowy format limitu", "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
             catch (Exception ex)
             {
@@ -521,6 +662,25 @@ namespace RC_GUI_WATS.ViewModels
         private void UpdateLimitsSummary()
         {
             LimitsSummary = _limitsService.GetLimitsSummary();
+        }
+        
+        // Request control history update from server after adding a limit
+        private async Task RequestControlHistoryUpdate()
+        {
+            try
+            {
+                _fileLoggingService.LogSettings("Requesting control history update", "Sending Get Controls History (G) request");
+                await _clientService.SendGetControlsHistoryAsync();
+                
+                // Small delay to allow server response to be processed
+                await Task.Delay(500);
+                
+                _fileLoggingService.LogSettings("Control history update requested", "Server should respond with updated limits");
+            }
+            catch (Exception ex)
+            {
+                _fileLoggingService.LogError("Failed to request control history update", ex);
+            }
         }
     }
 }
