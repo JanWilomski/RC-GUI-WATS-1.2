@@ -10,7 +10,6 @@ namespace RC_GUI_WATS
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
-
             // Setup dependency injection
             ConfigureServices();
         }
@@ -25,8 +24,10 @@ namespace RC_GUI_WATS
             var capitalService = new CapitalService(clientService);
             var limitsService = new LimitsService(clientService);
             var instrumentsService = new InstrumentsService();
-            var ccgMessagesService = new CcgMessagesService(clientService);
-            
+
+            // Pass InstrumentsService to CcgMessagesService for instrument mapping
+            var ccgMessagesService = new CcgMessagesService(clientService, instrumentsService);
+
             // Create heartbeat monitor service
             var heartbeatMonitorService = new HeartbeatMonitorService(clientService);
 
@@ -41,16 +42,16 @@ namespace RC_GUI_WATS
                 capitalService,
                 limitsService,
                 instrumentsService,
-                configService,  
+                configService,
                 heartbeatMonitorService,
                 ccgMessagesService,
                 fileLoggingService); // Add FileLoggingService to constructor
 
             mainWindow.DataContext = mainViewModel;
-            
+
             // Log window creation
             fileLoggingService.LogSettings("Main window created", "Application ready to start");
-            
+
             mainWindow.Show();
         }
 

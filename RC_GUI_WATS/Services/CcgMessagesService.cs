@@ -9,18 +9,37 @@ namespace RC_GUI_WATS.Services
     public class CcgMessagesService
     {
         private RcTcpClientService _clientService;
+        private InstrumentsService _instrumentsService;
         private ObservableCollection<CcgMessage> _ccgMessages = new ObservableCollection<CcgMessage>();
         private const int MAX_MESSAGES = 1000; // Limit to prevent memory issues
-
         public ObservableCollection<CcgMessage> CcgMessages => _ccgMessages;
 
         public event Action<CcgMessage> NewCcgMessageReceived;
         public event Action MessagesCleared;
 
-        public CcgMessagesService(RcTcpClientService clientService)
+        public CcgMessagesService(RcTcpClientService clientService, InstrumentsService instrumentsService)
         {
             _clientService = clientService;
+            _instrumentsService = instrumentsService;
             _clientService.MessageReceived += ProcessMessage;
+
+            // Subscribe to instruments updates to re-map existing messages
+            _instrumentsService.StatusUpdated += OnInstrumentsUpdated;
+        }
+
+        private void OnInstrumentsUpdated(string status)
+        {
+            // Re-map all existing messages when instruments are loaded/updated
+            if (status.Contains("Loaded") && _ccgMessages.Count > 0)
+            {
+                System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+                {
+                    foreach (var message in _ccgMessages)
+                    {
+                        MapInstrumentData(message);
+                    }
+                });
+            }
         }
 
         private void ProcessMessage(RcMessage message)
@@ -44,7 +63,7 @@ namespace RC_GUI_WATS.Services
                 // Extract CCG message from RC message payload
                 // Format: 'B' + uint16 length + CCG binary data
                 ushort ccgLength = BitConverter.ToUInt16(payload, 1);
-                
+
                 if (payload.Length < 3 + ccgLength)
                     return;
 
@@ -56,8 +75,9 @@ namespace RC_GUI_WATS.Services
                 if (_ccgMessages.Count < 10)
                 {
                     string hexDump = BitConverter.ToString(ccgData.Take(Math.Min(ccgData.Length, 20)).ToArray());
-                    System.Diagnostics.Debug.WriteLine($"CCG Message #{_ccgMessages.Count}: Length={ccgLength}, First 20 bytes: {hexDump}");
-                    
+                    System.Diagnostics.Debug.WriteLine(
+                        $"CCG Message #{_ccgMessages.Count}: Length={ccgLength}, First 20 bytes: {hexDump}");
+
                     if (ccgData.Length >= 4)
                     {
                         ushort length = BitConverter.ToUInt16(ccgData, 0);
@@ -75,7 +95,7 @@ namespace RC_GUI_WATS.Services
                         // Skip heartbeat messages - they're handled by HeartbeatMonitorService
                         return;
                     }
-                    
+
                     // Skip Login messages if there are too many (probably parsing error)
                     if (msgType == (ushort)CcgMessageType.Login || msgType == (ushort)CcgMessageType.LoginResponse)
                     {
@@ -90,9 +110,12 @@ namespace RC_GUI_WATS.Services
 
                 // Parse the CCG message
                 var ccgMessage = CcgMessageParser.ParseCcgMessage(ccgData, DateTime.Now);
-                
+
                 if (ccgMessage != null)
                 {
+                    // Map instrument data (ISIN and ProductCode)
+                    MapInstrumentData(ccgMessage);
+
                     // Add to collection (on UI thread)
                     System.Windows.Application.Current?.Dispatcher.Invoke(() =>
                     {
@@ -116,12 +139,52 @@ namespace RC_GUI_WATS.Services
             }
         }
 
+        private void MapInstrumentData(CcgMessage ccgMessage)
+        {
+            if (ccgMessage.InstrumentId.HasValue && _instrumentsService.Instruments.Count > 0)
+            {
+                try
+                {
+                    // Find instrument by InstrumentID
+                    var instrument = _instrumentsService.Instruments.FirstOrDefault(
+                        i => i.InstrumentID == ccgMessage.InstrumentId.Value);
+
+                    if (instrument != null)
+                    {
+                        ccgMessage.ISIN = instrument.ISIN;
+                        ccgMessage.ProductCode = instrument.ProductCode;
+
+                        System.Diagnostics.Debug.WriteLine(
+                            $"Mapped InstrumentID {ccgMessage.InstrumentId} -> ISIN: {instrument.ISIN}, ProductCode: {instrument.ProductCode}");
+                    }
+                    else
+                    {
+                        // Clear mapping if instrument not found
+                        ccgMessage.ISIN = "";
+                        ccgMessage.ProductCode = "";
+
+                        System.Diagnostics.Debug.WriteLine(
+                            $"InstrumentID {ccgMessage.InstrumentId} not found in instruments collection");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error mapping instrument data: {ex.Message}");
+                    ccgMessage.ISIN = "";
+                    ccgMessage.ProductCode = "";
+                }
+            }
+            else
+            {
+                // No InstrumentId or no instruments loaded
+                ccgMessage.ISIN = "";
+                ccgMessage.ProductCode = "";
+            }
+        }
+
         public void ClearMessages()
         {
-            System.Windows.Application.Current?.Dispatcher.Invoke(() =>
-            {
-                _ccgMessages.Clear();
-            });
+            System.Windows.Application.Current?.Dispatcher.Invoke(() => { _ccgMessages.Clear(); });
             MessagesCleared?.Invoke();
         }
 
@@ -139,14 +202,14 @@ namespace RC_GUI_WATS.Services
                 bool include = true;
 
                 // Message type filter
-                if (!string.IsNullOrEmpty(messageTypeFilter) && 
+                if (!string.IsNullOrEmpty(messageTypeFilter) &&
                     !msg.Name.Contains(messageTypeFilter, StringComparison.OrdinalIgnoreCase))
                 {
                     include = false;
                 }
 
                 // Side filter
-                if (!string.IsNullOrEmpty(sideFilter) && 
+                if (!string.IsNullOrEmpty(sideFilter) &&
                     !string.Equals(msg.Side, sideFilter, StringComparison.OrdinalIgnoreCase))
                 {
                     include = false;
@@ -182,13 +245,13 @@ namespace RC_GUI_WATS.Services
 
         public int GetMessageCountByType(string messageType)
         {
-            return _ccgMessages.Count(m => 
+            return _ccgMessages.Count(m =>
                 string.Equals(m.Name, messageType, StringComparison.OrdinalIgnoreCase));
         }
 
         public CcgMessage GetLatestMessageByType(string messageType)
         {
-            return _ccgMessages.FirstOrDefault(m => 
+            return _ccgMessages.FirstOrDefault(m =>
                 string.Equals(m.Name, messageType, StringComparison.OrdinalIgnoreCase));
         }
 
@@ -229,6 +292,32 @@ namespace RC_GUI_WATS.Services
             }
 
             return (orders, trades, cancels, quotes, others);
+        }
+
+        // Method to get instrument mapping statistics
+        public (int WithMapping, int WithoutMapping, int Total) GetInstrumentMappingStatistics()
+        {
+            int withMapping = 0;
+            int withoutMapping = 0;
+            int total = 0;
+
+            foreach (var msg in _ccgMessages)
+            {
+                if (msg.InstrumentId.HasValue)
+                {
+                    total++;
+                    if (!string.IsNullOrEmpty(msg.ISIN))
+                    {
+                        withMapping++;
+                    }
+                    else
+                    {
+                        withoutMapping++;
+                    }
+                }
+            }
+
+            return (withMapping, withoutMapping, total);
         }
     }
 }

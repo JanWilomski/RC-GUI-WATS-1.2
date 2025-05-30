@@ -53,7 +53,7 @@
                         <RadioButton Content="Chronologicznie (kolejność otrzymania)" 
                                    IsChecked="{Binding IsChronologicalMode}"
                                    Margin="0,0,20,0"/>
-                        <RadioButton Content="Hierarchicznie (ALL → Typy → Grupy → ISIN)" 
+                        <RadioButton Content="Hierarchicznie" 
                                    IsChecked="{Binding IsHierarchicalMode}"/>
                     </StackPanel>
                     <TextBlock Text="{Binding DisplayModeInfo}" 

@@ -1,7 +1,6 @@
 ﻿// Models/CcgMessage.cs
 using System;
 using System.Linq;
-
 namespace RC_GUI_WATS.Models
 {
     public class CcgMessage
@@ -17,6 +16,9 @@ namespace RC_GUI_WATS.Models
         public string ClientOrderId { get; set; } // Client Order ID or OrderId reference
         public byte[] RawData { get; set; } // Original binary data
         public uint SequenceNumber { get; set; } // Message sequence number
+        // New properties for instrument mapping
+        public string ISIN { get; set; } // ISIN mapped from InstrumentId
+        public string ProductCode { get; set; } // Product Code mapped from InstrumentId
         
         // Additional helper properties
         public string PriceDisplay => Price?.ToString("F4") ?? "";
@@ -26,6 +28,10 @@ namespace RC_GUI_WATS.Models
         public string DateReceivedDisplay => DateReceived.ToString("HH:mm:ss.fff");
         public string RawDataHex => RawData != null ? BitConverter.ToString(RawData).Replace("-", " ") : "";
         public string RawDataShort => RawData != null ? BitConverter.ToString(RawData.Take(20).ToArray()).Replace("-", " ") + (RawData.Length > 20 ? "..." : "") : "";
+        
+        // Display properties for new columns
+        public string ISINDisplay => string.IsNullOrEmpty(ISIN) ? "" : ISIN;
+        public string ProductCodeDisplay => string.IsNullOrEmpty(ProductCode) ? "" : ProductCode;
     }
 
     // Enums from GPW WATS documentation

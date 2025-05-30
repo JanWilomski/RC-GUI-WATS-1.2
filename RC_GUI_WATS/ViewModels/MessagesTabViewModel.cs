@@ -14,53 +14,60 @@ namespace RC_GUI_WATS.ViewModels
         private readonly PositionsService _positionsService;
         private readonly CapitalService _capitalService;
         private readonly HeartbeatMonitorService _heartbeatMonitor;
+
         private readonly CcgMessagesService _ccgMessagesService;
-        
+
         // Properties for binding
         public ObservableCollection<Position> Positions => _positionsService.Positions;
         public Capital CurrentCapital => _capitalService.CurrentCapital;
         public ObservableCollection<CcgMessage> CcgMessages => _ccgMessagesService.CcgMessages;
-        
+
         // Heartbeat indicator
         public HeartbeatIndicatorViewModel HeartbeatIndicator { get; }
-        
+
         // UI properties for capital
         private string _openCapitalText;
+
         public string OpenCapitalText
         {
             get => _openCapitalText;
             set => SetProperty(ref _openCapitalText, value);
         }
-        
+
         private string _accruedCapitalText;
+
         public string AccruedCapitalText
         {
             get => _accruedCapitalText;
             set => SetProperty(ref _accruedCapitalText, value);
         }
-        
+
         private string _totalCapitalText;
+
         public string TotalCapitalText
         {
             get => _totalCapitalText;
             set => SetProperty(ref _totalCapitalText, value);
         }
-        
+
         private string _messagesPercentageText;
+
         public string MessagesPercentageText
         {
             get => _messagesPercentageText;
             set => SetProperty(ref _messagesPercentageText, value);
         }
-        
+
         private Brush _messagesPercentageBrush;
+
         public Brush MessagesPercentageBrush
         {
             get => _messagesPercentageBrush;
             set => SetProperty(ref _messagesPercentageBrush, value);
         }
-        
+
         private Brush _capitalPercentageBrush;
+
         public Brush CapitalPercentageBrush
         {
             get => _capitalPercentageBrush;
@@ -69,6 +76,7 @@ namespace RC_GUI_WATS.ViewModels
 
         // CCG Messages properties
         private string _ccgMessageCountText;
+
         public string CcgMessageCountText
         {
             get => _ccgMessageCountText;
@@ -76,14 +84,25 @@ namespace RC_GUI_WATS.ViewModels
         }
 
         private string _ccgStatisticsText;
+
         public string CcgStatisticsText
         {
             get => _ccgStatisticsText;
             set => SetProperty(ref _ccgStatisticsText, value);
         }
 
+        // New property for instrument mapping statistics
+        private string _instrumentMappingText;
+
+        public string InstrumentMappingText
+        {
+            get => _instrumentMappingText;
+            set => SetProperty(ref _instrumentMappingText, value);
+        }
+
         // Filter properties for CCG messages
         private string _messageTypeFilter;
+
         public string MessageTypeFilter
         {
             get => _messageTypeFilter;
@@ -97,6 +116,7 @@ namespace RC_GUI_WATS.ViewModels
         }
 
         private string _sideFilter;
+
         public string SideFilter
         {
             get => _sideFilter;
@@ -110,6 +130,7 @@ namespace RC_GUI_WATS.ViewModels
         }
 
         private string _instrumentIdFilter;
+
         public string InstrumentIdFilter
         {
             get => _instrumentIdFilter;
@@ -126,7 +147,7 @@ namespace RC_GUI_WATS.ViewModels
         public RelayCommand AllSwitchCommand { get; }
         public RelayCommand ClearCcgMessagesCommand { get; }
         public RelayCommand ClearFiltersCommand { get; }
-        
+
         public MessagesTabViewModel(
             RcTcpClientService clientService,
             PositionsService positionsService,
@@ -139,39 +160,39 @@ namespace RC_GUI_WATS.ViewModels
             _capitalService = capitalService;
             _heartbeatMonitor = heartbeatMonitor;
             _ccgMessagesService = ccgMessagesService;
-            
+
             // Create heartbeat indicator view model
             HeartbeatIndicator = new HeartbeatIndicatorViewModel(_heartbeatMonitor);
-            
+
             // Subscribe to capital updates
             _capitalService.CapitalUpdated += UpdateCapitalDisplay;
-            
+
             // Subscribe to CCG message updates
             _ccgMessagesService.NewCcgMessageReceived += OnNewCcgMessage;
             _ccgMessagesService.MessagesCleared += OnCcgMessagesCleared;
-            
+
             // Initialize commands
             AllSwitchCommand = new RelayCommand(AllSwitchButtonClick);
             ClearCcgMessagesCommand = new RelayCommand(() => _ccgMessagesService.ClearMessages());
             ClearFiltersCommand = new RelayCommand(ClearFilters);
-            
+
             // Initialize display
             UpdateCapitalDisplay();
             UpdateCcgStatistics();
         }
-        
+
         public void UpdateCapitalDisplay()
         {
             OpenCapitalText = CurrentCapital.OpenCapital.ToString("0.00");
             AccruedCapitalText = CurrentCapital.AccruedCapital.ToString("0.00");
             TotalCapitalText = CurrentCapital.TotalCapital.ToString("0.00");
-            
+
             MessagesPercentageText = $"{CurrentCapital.MessagesPercentage}%";
             MessagesPercentageBrush = GetBrushForPercentage(CurrentCapital.MessagesPercentage);
-            
+
             CapitalPercentageBrush = GetBrushForPercentage(CurrentCapital.CapitalPercentage);
         }
-        
+
         private Brush GetBrushForPercentage(double percentage)
         {
             if (percentage < 50)
@@ -198,7 +219,26 @@ namespace RC_GUI_WATS.ViewModels
             CcgMessageCountText = $"CCG Messages: {count}";
 
             var (orders, trades, cancels, quotes, others) = _ccgMessagesService.GetMessageStatistics();
-            CcgStatisticsText = $"Orders: {orders}, Trades: {trades}, Cancels: {cancels}, Quotes: {quotes}, Others: {others}";
+            CcgStatisticsText =
+                $"Orders: {orders}, Trades: {trades}, Cancels: {cancels}, Quotes: {quotes}, Others: {others}";
+
+            // Update instrument mapping statistics
+            var (withMapping, withoutMapping, total) = _ccgMessagesService.GetInstrumentMappingStatistics();
+
+            if (total > 0)
+            {
+                double mappingPercentage = (double)withMapping / total * 100;
+                InstrumentMappingText = $"Instrument Mapping: {withMapping}/{total} ({mappingPercentage:F1}%)";
+
+                if (withoutMapping > 0)
+                {
+                    InstrumentMappingText += $" | {withoutMapping} unmapped";
+                }
+            }
+            else
+            {
+                InstrumentMappingText = "Instrument Mapping: N/A (no messages with InstrumentID)";
+            }
         }
 
         private void ApplyFilters()
@@ -214,7 +254,7 @@ namespace RC_GUI_WATS.ViewModels
             SideFilter = "";
             InstrumentIdFilter = "";
         }
-        
+
         public async void AllSwitchButtonClick()
         {
             if (_clientService.IsConnected)
