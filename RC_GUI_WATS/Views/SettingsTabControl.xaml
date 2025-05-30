@@ -31,6 +31,8 @@
         <Grid Grid.Row="1" Margin="5">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
             
@@ -44,8 +46,27 @@
                         Margin="0,0,5,0" Padding="5,2"/>
             </StackPanel>
             
+            <!-- Display mode selection -->
+            <GroupBox Grid.Row="1" Header="Sposób wyświetlania limitów" Margin="0,5">
+                <StackPanel Margin="5">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                        <RadioButton Content="Chronologicznie (kolejność otrzymania)" 
+                                   IsChecked="{Binding IsChronologicalMode}"
+                                   Margin="0,0,20,0"/>
+                        <RadioButton Content="Hierarchicznie (ALL → Typy → Grupy → ISIN)" 
+                                   IsChecked="{Binding IsHierarchicalMode}"/>
+                    </StackPanel>
+                    <TextBlock Text="{Binding DisplayModeInfo}" 
+                             FontSize="11" Foreground="DarkGray" Margin="0,2,0,0"/>
+                </StackPanel>
+            </GroupBox>
+            
+            <!-- Limits summary -->
+            <TextBlock Grid.Row="2" Text="{Binding LimitsSummary}" 
+                     FontSize="11" Foreground="DarkBlue" Margin="0,5"/>
+            
             <!-- Limits DataGrid -->
-            <DataGrid Grid.Row="1" ItemsSource="{Binding ControlLimits}" AutoGenerateColumns="False" 
+            <DataGrid Grid.Row="3" ItemsSource="{Binding DisplayedLimits}" AutoGenerateColumns="False" 
                     CanUserAddRows="False" CanUserDeleteRows="False" 
                     Margin="0,5,100,0" SelectionMode="Single">
                 <DataGrid.Columns>
@@ -53,6 +74,47 @@
                     <DataGridTextColumn Header="Typ" Binding="{Binding Name}" Width="120" IsReadOnly="True"/>
                     <DataGridTextColumn Header="Wartość" Binding="{Binding Value}" Width="*" IsReadOnly="True"/>
                 </DataGrid.Columns>
+                
+                <!-- Row styling based on scope type -->
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Setter Property="Background" Value="White"/>
+                        <Style.Triggers>
+                            <!-- ALL instruments - light green background -->
+                            <DataTrigger Binding="{Binding Scope}" Value="(ALL)">
+                                <Setter Property="Background" Value="#E8F5E8"/>
+                                <Setter Property="FontWeight" Value="Bold"/>
+                            </DataTrigger>
+                            
+                            <!-- Common instrument types - light blue background -->
+                            <DataTrigger Binding="{Binding Scope}" Value="(EQUITY)">
+                                <Setter Property="Background" Value="#E8F0FF"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Scope}" Value="(BOND)">
+                                <Setter Property="Background" Value="#E8F0FF"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Scope}" Value="(FUTURE)">
+                                <Setter Property="Background" Value="#E8F0FF"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Scope}" Value="(OPTION)">
+                                <Setter Property="Background" Value="#E8F0FF"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Scope}" Value="(INDEX)">
+                                <Setter Property="Background" Value="#E8F0FF"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </DataTrigger>
+                            
+                            <!-- Individual instruments (ISIN codes) - light gray background for Polish ISINs -->
+                            <DataTrigger Binding="{Binding Scope}" Value="PLPKO0000016">
+                                <Setter Property="Background" Value="#F5F5F5"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
             </DataGrid>
         </Grid>
         
