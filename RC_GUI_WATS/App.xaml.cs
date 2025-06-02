@@ -27,6 +27,7 @@ namespace RC_GUI_WATS
 
             // Pass InstrumentsService to CcgMessagesService for instrument mapping
             var ccgMessagesService = new CcgMessagesService(clientService, instrumentsService);
+            var orderBookService = new OrderBookService(ccgMessagesService, instrumentsService);
 
             // Create heartbeat monitor service
             var heartbeatMonitorService = new HeartbeatMonitorService(clientService);
@@ -45,7 +46,8 @@ namespace RC_GUI_WATS
                 configService,
                 heartbeatMonitorService,
                 ccgMessagesService,
-                fileLoggingService); // Add FileLoggingService to constructor
+                orderBookService,
+                fileLoggingService);
 
             mainWindow.DataContext = mainViewModel;
 

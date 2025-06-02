@@ -15,11 +15,14 @@ namespace RC_GUI_WATS.ViewModels
         private readonly CapitalService _capitalService;
         private readonly HeartbeatMonitorService _heartbeatMonitor;
         private readonly CcgMessagesService _ccgMessagesService;
+        private readonly OrderBookService _orderBookService;
         
         // Properties for binding
         public ObservableCollection<Position> Positions => _positionsService.Positions;
         public Capital CurrentCapital => _capitalService.CurrentCapital;
         public ObservableCollection<CcgMessage> CcgMessages => _ccgMessagesService.CcgMessages;
+        
+        
         
         // Heartbeat indicator
         public HeartbeatIndicatorViewModel HeartbeatIndicator { get; }
@@ -31,6 +34,18 @@ namespace RC_GUI_WATS.ViewModels
             get => _openCapitalText;
             set => SetProperty(ref _openCapitalText, value);
         }
+        
+        private string _orderStatisticsText;
+        public string OrderStatisticsText
+        {
+            get => _orderStatisticsText;
+            set => SetProperty(ref _orderStatisticsText, value);
+        }
+        
+        public RelayCommand ClearOrderBookCommand { get; }
+        public RelayCommand RebuildOrderBookCommand { get; }
+        
+        
         
         private string _accruedCapitalText;
         public string AccruedCapitalText
@@ -133,13 +148,15 @@ namespace RC_GUI_WATS.ViewModels
             PositionsService positionsService,
             CapitalService capitalService,
             HeartbeatMonitorService heartbeatMonitor,
-            CcgMessagesService ccgMessagesService)
+            CcgMessagesService ccgMessagesService,
+            OrderBookService orderBookService)
         {
             _clientService = clientService;
             _positionsService = positionsService;
             _capitalService = capitalService;
             _heartbeatMonitor = heartbeatMonitor;
             _ccgMessagesService = ccgMessagesService;
+            _orderBookService = orderBookService;
             
             // Create heartbeat indicator view model
             HeartbeatIndicator = new HeartbeatIndicatorViewModel(_heartbeatMonitor);
@@ -151,15 +168,22 @@ namespace RC_GUI_WATS.ViewModels
             _ccgMessagesService.NewCcgMessageReceived += OnNewCcgMessage;
             _ccgMessagesService.MessagesCleared += OnCcgMessagesCleared;
             
+            // Subscribe to order book updates
+            _orderBookService.OrderUpdated += OnOrderUpdated;
+            _orderBookService.OrderBookCleared += OnOrderBookCleared;
+            
             // Initialize commands
             AllSwitchCommand = new RelayCommand(AllSwitchButtonClick);
             ClearCcgMessagesCommand = new RelayCommand(() => _ccgMessagesService.ClearMessages());
             ClearFiltersCommand = new RelayCommand(ClearFilters);
             ShowCcgMessageDetailsCommand = new RelayCommand<CcgMessage>(ShowCcgMessageDetails);
+            ClearOrderBookCommand = new RelayCommand(() => _orderBookService.ClearOrderBook());
+            RebuildOrderBookCommand = new RelayCommand(() => _orderBookService.RebuildOrderBook());
             
             // Initialize display
             UpdateCapitalDisplay();
             UpdateCcgStatistics();
+            UpdateOrderStatistics();
         }
         
         public void UpdateCapitalDisplay()
@@ -245,6 +269,22 @@ namespace RC_GUI_WATS.ViewModels
                     System.Windows.MessageBoxButton.OK, 
                     System.Windows.MessageBoxImage.Error);
             }
+        }
+        
+        private void OnOrderUpdated(OrderBookEntry order)
+        {
+            UpdateOrderStatistics();
+        }
+
+        private void OnOrderBookCleared()
+        {
+            UpdateOrderStatistics();
+        }
+
+        private void UpdateOrderStatistics()
+        {
+            var (active, filled, cancelled, total) = _orderBookService.GetOrderStatistics();
+            OrderStatisticsText = $"Orders: {total} (Active: {active}, Filled: {filled}, Cancelled: {cancelled})";
         }
     }
 }

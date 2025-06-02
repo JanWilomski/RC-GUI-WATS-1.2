@@ -120,11 +120,17 @@
         <GridSplitter Grid.Row="2" Height="5" HorizontalAlignment="Stretch" 
                       Background="LightGray" ResizeDirection="Rows"/>
         
+        
         <!-- CCG Messages Section -->
         <Grid Grid.Row="3" Margin="5">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
+                <RowDefinition Height="200"/>
+                <RowDefinition Height="5"/>
+                <RowDefinition Height="200"/> <!-- CCG Messages height -->
+                <RowDefinition Height="5"/> <!-- New splitter -->
+                <RowDefinition Height="*"/> <!-- Order Book -->
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             
             <!-- CCG Messages Header and Filters -->
@@ -324,10 +330,254 @@
                     </Style>
                 </DataGrid.RowStyle>
             </DataGrid>
+            <GridSplitter Grid.Row="4" Height="5" HorizontalAlignment="Stretch" 
+              Background="LightGray" ResizeDirection="Rows"/>
+
+            <!-- Order Book Section -->
+            <Grid Grid.Row="5" Margin="5">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                
+                <!-- Order Book Header -->
+                <Grid Grid.Row="0" Margin="0,0,0,5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <TextBlock Grid.Column="0" Text="Order Book" FontWeight="Bold" 
+                               VerticalAlignment="Center" Margin="0,0,15,0"/>
+                    
+                    <TextBlock Grid.Column="1" Text="{Binding OrderStatisticsText}" 
+                               VerticalAlignment="Center" FontSize="11" Foreground="DarkBlue"/>
+                    
+                    <StackPanel Grid.Column="3" Orientation="Horizontal">
+                        <Button Content="Rebuild" Command="{Binding RebuildOrderBookCommand}" 
+                                Padding="5,2" Margin="0,0,5,0" FontSize="10"/>
+                        <Button Content="Clear" Command="{Binding ClearOrderBookCommand}" 
+                                Padding="5,2" FontSize="10"/>
+                    </StackPanel>
+                </Grid>
+                
+                <!-- Order Book DataGrid -->
+                <DataGrid Grid.Row="1" AutoGenerateColumns="False" 
+                          ItemsSource="{Binding OrderBook}"
+                          CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True"
+                          GridLinesVisibility="All" FontSize="10" RowHeight="20">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="OrderId" Binding="{Binding OrderId}" Width="80">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="FontFamily" Value="Consolas"/>
+                                    <Setter Property="FontSize" Value="9"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        
+                        <DataGridTextColumn Header="Created" Binding="{Binding CreatedTime, StringFormat=HH:mm:ss.fff}" Width="75"/>
+                        
+                        <DataGridTextColumn Header="Side" Binding="{Binding Side}" Width="40">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                    <Style.Triggers>
+                                        <Trigger Property="Text" Value="Buy">
+                                            <Setter Property="Foreground" Value="Green"/>
+                                        </Trigger>
+                                        <Trigger Property="Text" Value="Sell">
+                                            <Setter Property="Foreground" Value="Red"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        
+                        <DataGridTextColumn Header="InstrId" Binding="{Binding InstrumentId}" Width="60"/>
+                        
+                        <DataGridTextColumn Header="ISIN" Binding="{Binding ISIN}" Width="100">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="FontFamily" Value="Consolas"/>
+                                    <Setter Property="FontSize" Value="9"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        
+                        <DataGridTextColumn Header="Product" Binding="{Binding ProductCode}" Width="70">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="FontFamily" Value="Consolas"/>
+                                    <Setter Property="FontSize" Value="9"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        
+                        <DataGridTextColumn Header="Type" Binding="{Binding OrderType}" Width="60"/>
+                        <DataGridTextColumn Header="TIF" Binding="{Binding TimeInForce}" Width="40"/>
+                        
+                        <DataGridTextColumn Header="Price" Binding="{Binding PriceDisplay}" Width="70">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                    <Setter Property="FontFamily" Value="Consolas"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        
+                        <DataGridTextColumn Header="Orig Qty" Binding="{Binding OriginalQuantity}" Width="60">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        
+                        <DataGridTextColumn Header="Curr Qty" Binding="{Binding CurrentQuantity}" Width="60">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        
+                        <DataGridTextColumn Header="Filled" Binding="{Binding FilledDisplay}" Width="80">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        
+                        <DataGridTextColumn Header="Fill%" Binding="{Binding FillPercentage}" Width="50">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Status}" Value="Filled">
+                                            <Setter Property="Foreground" Value="Green"/>
+                                            <Setter Property="FontWeight" Value="Bold"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        
+                        <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="80">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                                    <Style.Triggers>
+                                        <Trigger Property="Text" Value="New">
+                                            <Setter Property="Foreground" Value="Blue"/>
+                                        </Trigger>
+                                        <Trigger Property="Text" Value="PartiallyFilled">
+                                            <Setter Property="Foreground" Value="Orange"/>
+                                        </Trigger>
+                                        <Trigger Property="Text" Value="Filled">
+                                            <Setter Property="Foreground" Value="Green"/>
+                                            <Setter Property="FontWeight" Value="Bold"/>
+                                        </Trigger>
+                                        <Trigger Property="Text" Value="Cancelled">
+                                            <Setter Property="Foreground" Value="Red"/>
+                                        </Trigger>
+                                        <Trigger Property="Text" Value="Rejected">
+                                            <Setter Property="Foreground" Value="DarkRed"/>
+                                            <Setter Property="FontWeight" Value="Bold"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        
+                        <DataGridTextColumn Header="Mods" Binding="{Binding ModificationCount}" Width="40">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        
+                        <DataGridTextColumn Header="Trades" Binding="{Binding TradeCount}" Width="50">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        
+                        <DataGridTextColumn Header="ClientOrderId" Binding="{Binding ClientOrderId}" Width="150"/>
+                        
+                        <DataGridTextColumn Header="Last Update" Binding="{Binding LastUpdateTime, StringFormat=HH:mm:ss.fff}" Width="75"/>
+                    </DataGrid.Columns>
+                    
+                    <!-- Row styling -->
+                    <DataGrid.RowStyle>
+                        <Style TargetType="DataGridRow">
+                            <Setter Property="Background" Value="White"/>
+                            <Style.Triggers>
+                                <!-- Active orders - light blue -->
+                                <DataTrigger Binding="{Binding Status}" Value="New">
+                                    <Setter Property="Background" Value="#E6F3FF"/>
+                                </DataTrigger>
+                                
+                                <!-- Partially filled - light yellow -->
+                                <DataTrigger Binding="{Binding Status}" Value="PartiallyFilled">
+                                    <Setter Property="Background" Value="#FFFACD"/>
+                                </DataTrigger>
+                                
+                                <!-- Filled - light green -->
+                                <DataTrigger Binding="{Binding Status}" Value="Filled">
+                                    <Setter Property="Background" Value="#E6FFE6"/>
+                                </DataTrigger>
+                                
+                                <!-- Cancelled - light gray -->
+                                <DataTrigger Binding="{Binding Status}" Value="Cancelled">
+                                    <Setter Property="Background" Value="#F0F0F0"/>
+                                    <Setter Property="Foreground" Value="Gray"/>
+                                </DataTrigger>
+                                
+                                <!-- Rejected - light red -->
+                                <DataTrigger Binding="{Binding Status}" Value="Rejected">
+                                    <Setter Property="Background" Value="#FFE6E6"/>
+                                </DataTrigger>
+                                
+                                <!-- Mouse over -->
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#D0D0D0"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.RowStyle>
+                    
+                    <!-- Row details template to show order events -->
+                    <DataGrid.RowDetailsTemplate>
+                        <DataTemplate>
+                            <Border Background="#F5F5F5" BorderBrush="Gray" BorderThickness="1" Margin="5" Padding="5">
+                                <DataGrid ItemsSource="{Binding Events}" AutoGenerateColumns="False" 
+                                          CanUserAddRows="False" IsReadOnly="True" FontSize="9">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Time" Binding="{Binding Timestamp, StringFormat=HH:mm:ss.fff}" Width="70"/>
+                                        <DataGridTextColumn Header="Event" Binding="{Binding EventType}" Width="60"/>
+                                        <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*"/>
+                                        <DataGridTextColumn Header="Old" Binding="{Binding OldValue}" Width="100"/>
+                                        <DataGridTextColumn Header="New" Binding="{Binding NewValue}" Width="100"/>
+                                        <DataGridTextColumn Header="SeqNum" Binding="{Binding SequenceNumber}" Width="60"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Border>
+                        </DataTemplate>
+                    </DataGrid.RowDetailsTemplate>
+                </DataGrid>
+            </Grid>
         </Grid>
         
         <!-- Buttons panel -->
-        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Left" Margin="5">
+        <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Left" Margin="5">
             <Button Content="Kill switch" Background="Red" Foreground="White" 
                     Command="{Binding AllSwitchCommand}"
                     Padding="10,2" Margin="0,0,5,0"/>

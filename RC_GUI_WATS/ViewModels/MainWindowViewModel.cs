@@ -79,6 +79,7 @@ namespace RC_GUI_WATS.ViewModels
             ConfigurationService configService,
             HeartbeatMonitorService heartbeatMonitorService,
             CcgMessagesService ccgMessagesService,
+            OrderBookService orderBookService,
             FileLoggingService fileLoggingService) // Add FileLoggingService
         {
             _clientService = clientService;
@@ -91,7 +92,7 @@ namespace RC_GUI_WATS.ViewModels
             _serverPort = _configService.ServerPort.ToString();
             
             // Initialize tab ViewModels - pass FileLoggingService to SettingsTab
-            MessagesTab = new MessagesTabViewModel(clientService, positionsService, capitalService, heartbeatMonitorService, ccgMessagesService);
+            MessagesTab = new MessagesTabViewModel(clientService, positionsService, capitalService, heartbeatMonitorService, ccgMessagesService, orderBookService);
             SettingsTab = new SettingsTabViewModel(clientService, limitsService, configService, fileLoggingService, _serverIp, _serverPort);
             FiltersTab = new FiltersTabViewModel();
             InstrumentsTab = new InstrumentsTabViewModel(instrumentsService, _configService.InstrumentsFilePath);
