@@ -11,7 +11,7 @@ namespace RC_GUI_WATS.ViewModels
     public class CcgMessageDetailsViewModel : BaseViewModel
     {
         private readonly CcgMessage _originalMessage;
-        private readonly CcgMessageDetails _messageDetailsParser;
+        private readonly CcgMessageDetails _messageDetails;
 
         // Properties
         private string _windowTitle;
@@ -143,7 +143,7 @@ namespace RC_GUI_WATS.ViewModels
         public CcgMessageDetailsViewModel(CcgMessage ccgMessage)
         {
             _originalMessage = ccgMessage;
-            _messageDetailsParser = CcgMessageDetailsParser.ParseMessageDetails(ccgMessage);
+            _messageDetails = CcgMessageDetailsParser.ParseMessageDetails(ccgMessage);
 
             // Initialize commands
             CopyFieldValueCommand = new RelayCommand<CcgMessageField>(CopyFieldValue);
@@ -158,21 +158,21 @@ namespace RC_GUI_WATS.ViewModels
 
         private void InitializeProperties()
         {
-            WindowTitle = $"CCG Message Details - {_messageDetailsParser.MessageName}";
-            MessageType = _messageDetailsParser.MessageType;
-            MessageName = _messageDetailsParser.MessageName;
+            WindowTitle = $"CCG Message Details - {_messageDetails.MessageName}";
+            MessageType = _messageDetails.MessageType;
+            MessageName = _messageDetails.MessageName;
             DateReceived = _originalMessage.DateReceived.ToString("yyyy-MM-dd HH:mm:ss.fff");
             TransactTime = _originalMessage.TransactTime.ToString("yyyy-MM-dd HH:mm:ss.fff");
             SequenceNumber = _originalMessage.SequenceNumber.ToString();
-            RawDataLength = $"{_messageDetailsParser.RawData?.Length ?? 0} bytes";
+            RawDataLength = $"{_messageDetails.RawData?.Length ?? 0} bytes";
 
             // Parse error handling
-            ParseError = _messageDetailsParser.ParseError;
-            HasParseError = !string.IsNullOrEmpty(_messageDetailsParser.ParseError);
+            ParseError = _messageDetails.ParseError;
+            HasParseError = !string.IsNullOrEmpty(_messageDetails.ParseError);
 
             // Raw data
-            RawDataHex = _messageDetailsParser.RawDataHex;
-            RawDataText = ConvertToReadableText(_messageDetailsParser.RawData);
+            RawDataHex = _messageDetails.RawDataHex;
+            RawDataText = ConvertToReadableText(_messageDetails.RawData);
             
             UpdateRawDataDisplay();
         }
@@ -180,7 +180,7 @@ namespace RC_GUI_WATS.ViewModels
         private void LoadFields()
         {
             Fields.Clear();
-            foreach (var field in _messageDetailsParser.Fields)
+            foreach (var field in _messageDetails.Fields)
             {
                 Fields.Add(field);
             }
@@ -232,7 +232,7 @@ namespace RC_GUI_WATS.ViewModels
         private void UpdateStatistics()
         {
             var fieldsCount = Fields.Count;
-            var dataSize = _messageDetailsParser.RawData?.Length ?? 0;
+            var dataSize = _messageDetails.RawData?.Length ?? 0;
             var parsedSize = 0;
             
             foreach (var field in Fields)

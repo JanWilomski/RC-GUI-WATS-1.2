@@ -51,6 +51,18 @@ namespace RC_GUI_WATS.Services
                 {
                     switch (msgType)
                     {
+                        case CcgMessageType.Login:
+                            ParseLogin(ccgMessage.RawData, details);
+                            break;
+                        case CcgMessageType.LoginResponse:
+                            ParseLoginResponse(ccgMessage.RawData, details);
+                            break;
+                        case CcgMessageType.Logout:
+                            ParseLogout(ccgMessage.RawData, details);
+                            break;
+                        case CcgMessageType.LogoutResponse:
+                            ParseLogoutResponse(ccgMessage.RawData, details);
+                            break;
                         case CcgMessageType.OrderAdd:
                             ParseOrderAdd(ccgMessage.RawData, details);
                             break;
@@ -112,21 +124,21 @@ namespace RC_GUI_WATS.Services
             return details;
         }
 
-        private static void ParseHeader(byte[] data, CcgMessageDetails detailsParser)
+        private static void ParseHeader(byte[] data, CcgMessageDetails details)
         {
             if (data.Length < 16) return;
 
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "length",
                 Type = "u16",
                 Value = BitConverter.ToUInt16(data, 0).ToString(),
                 Description = "Total length of the message",
-                Offset = 0,
+                Offset = 0,  
                 Length = 2
             });
 
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "msgType",
                 Type = "u16",
@@ -136,7 +148,7 @@ namespace RC_GUI_WATS.Services
                 Length = 2
             });
 
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "seqNum",
                 Type = "u32",
@@ -146,7 +158,7 @@ namespace RC_GUI_WATS.Services
                 Length = 4
             });
 
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "timestamp",
                 Type = "u64",
@@ -157,14 +169,164 @@ namespace RC_GUI_WATS.Services
             });
         }
 
-        private static void ParseOrderAdd(byte[] data, CcgMessageDetails detailsParser)
+        private static void ParseLogin(byte[] data, CcgMessageDetails details)
         {
-            ParseHeader(data, detailsParser);
+            ParseHeader(data, details);
+            if (data.Length < 36) return;
+
+            int offset = 16;
+
+            var version = BitConverter.ToUInt16(data, offset);
+            details.Fields.Add(new CcgMessageField
+            {
+                Name = "version",
+                Type = "u16",
+                Value = version.ToString(),
+                Description = "Protocol version",
+                Offset = offset,
+                Length = 2
+            });
+            offset += 2;
+
+            var token = System.Text.Encoding.ASCII.GetString(data, offset, 8).TrimEnd('\0');
+            details.Fields.Add(new CcgMessageField
+            {
+                Name = "token",
+                Type = "char[8]",
+                Value = $"'{token}'",
+                Description = "Authentication token",
+                Offset = offset,
+                Length = 8
+            });
+            offset += 8;
+
+            var connectionId = BitConverter.ToUInt16(data, offset);
+            details.Fields.Add(new CcgMessageField
+            {
+                Name = "connectionId",
+                Type = "u16",
+                Value = connectionId.ToString(),
+                Description = "Connection ID",
+                Offset = offset,
+                Length = 2
+            });
+            offset += 2;
+
+            var nextExpectedSeqNum = BitConverter.ToUInt32(data, offset);
+            details.Fields.Add(new CcgMessageField
+            {
+                Name = "nextExpectedSeqNum",
+                Type = "u32",
+                Value = nextExpectedSeqNum.ToString(),
+                Description = "Next expected message sequence number",
+                Offset = offset,
+                Length = 4
+            });
+            offset += 4;
+
+            var lastSentSeqNum = BitConverter.ToUInt32(data, offset);
+            details.Fields.Add(new CcgMessageField
+            {
+                Name = "lastSentSeqNum",
+                Type = "u32",
+                Value = lastSentSeqNum.ToString(),
+                Description = "Last sent sequence number",
+                Offset = offset,
+                Length = 4
+            });
+        }
+
+        private static void ParseLoginResponse(byte[] data, CcgMessageDetails details)
+        {
+            ParseHeader(data, details);
+            if (data.Length < 27) return;
+
+            int offset = 16;
+
+            var result = data[offset];
+            details.Fields.Add(new CcgMessageField
+            {
+                Name = "result",
+                Type = "enum",
+                Value = $"{result} ({GetLoginResultName(result)})",
+                Description = "Login response status code",
+                Offset = offset,
+                Length = 1
+            });
+            offset += 1;
+
+            var nextExpectedSeqNum = BitConverter.ToUInt32(data, offset);
+            details.Fields.Add(new CcgMessageField
+            {
+                Name = "nextExpectedSeqNum",
+                Type = "u32",
+                Value = nextExpectedSeqNum.ToString(),
+                Description = "Next expected message sequence number",
+                Offset = offset,
+                Length = 4
+            });
+            offset += 4;
+
+            var lastReplaySeqNum = BitConverter.ToUInt32(data, offset);
+            details.Fields.Add(new CcgMessageField
+            {
+                Name = "lastReplaySeqNum",
+                Type = "u32",
+                Value = lastReplaySeqNum.ToString(),
+                Description = "Last replay sequence number",
+                Offset = offset,
+                Length = 4
+            });
+            offset += 4;
+
+            var sessionId = BitConverter.ToUInt16(data, offset);
+            details.Fields.Add(new CcgMessageField
+            {
+                Name = "sessionId",
+                Type = "u16",
+                Value = sessionId.ToString(),
+                Description = "Session ID",
+                Offset = offset,
+                Length = 2
+            });
+        }
+
+        private static void ParseLogout(byte[] data, CcgMessageDetails details)
+        {
+            ParseHeader(data, details);
+            details.Fields.Add(new CcgMessageField
+            {
+                Name = "(logout)",
+                Type = "info",
+                Value = "No additional data",
+                Description = "Logout message contains only header",
+                Offset = 16,
+                Length = 0
+            });
+        }
+
+        private static void ParseLogoutResponse(byte[] data, CcgMessageDetails details)
+        {
+            ParseHeader(data, details);
+            details.Fields.Add(new CcgMessageField
+            {
+                Name = "(logout_response)",
+                Type = "info",
+                Value = "No additional data",
+                Description = "LogoutResponse message contains only header",
+                Offset = 16,
+                Length = 0
+            });
+        }
+
+        private static void ParseOrderAdd(byte[] data, CcgMessageDetails details)
+        {
+            ParseHeader(data, details);
             if (data.Length < 167) return;
 
             int offset = 16;
 
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "stpId",
                 Type = "u8",
@@ -175,7 +337,7 @@ namespace RC_GUI_WATS.Services
             });
             offset += 1;
 
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "instrumentId",
                 Type = "u32",
@@ -187,7 +349,7 @@ namespace RC_GUI_WATS.Services
             offset += 4;
 
             var orderType = data[offset];
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "orderType",
                 Type = "enum",
@@ -199,7 +361,7 @@ namespace RC_GUI_WATS.Services
             offset += 1;
 
             var timeInForce = data[offset];
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "timeInForce",
                 Type = "enum",
@@ -211,7 +373,7 @@ namespace RC_GUI_WATS.Services
             offset += 1;
 
             var side = data[offset];
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "side",
                 Type = "enum",
@@ -223,7 +385,7 @@ namespace RC_GUI_WATS.Services
             offset += 1;
 
             var price = BitConverter.ToInt64(data, offset);
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "price",
                 Type = "i64",
@@ -235,7 +397,7 @@ namespace RC_GUI_WATS.Services
             offset += 8;
 
             var triggerPrice = BitConverter.ToInt64(data, offset);
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "triggerPrice",
                 Type = "i64",
@@ -247,7 +409,7 @@ namespace RC_GUI_WATS.Services
             offset += 8;
 
             var quantity = BitConverter.ToUInt64(data, offset);
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "quantity",
                 Type = "u64",
@@ -259,7 +421,7 @@ namespace RC_GUI_WATS.Services
             offset += 8;
 
             var displayQty = BitConverter.ToUInt64(data, offset);
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "displayQty",
                 Type = "u64",
@@ -271,7 +433,7 @@ namespace RC_GUI_WATS.Services
             offset += 8;
 
             var capacity = data[offset];
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "capacity",
                 Type = "enum",
@@ -282,9 +444,8 @@ namespace RC_GUI_WATS.Services
             });
             offset += 1;
 
-            // Account (16 bytes)
             var account = Encoding.ASCII.GetString(data, offset, 16).TrimEnd('\0');
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "account",
                 Type = "char[16]",
@@ -295,14 +456,13 @@ namespace RC_GUI_WATS.Services
             });
             offset += 16;
 
-            // Skip MiFID fields for brevity (can be expanded)
-            offset += 16; // mifidFields
+            // Skip MiFID fields for brevity
+            offset += 16;
 
-            // ClientOrderId (20 bytes)
             if (offset + 20 <= data.Length)
             {
                 var clientOrderId = Encoding.ASCII.GetString(data, offset, 20).TrimEnd('\0');
-                detailsParser.Fields.Add(new CcgMessageField
+                details.Fields.Add(new CcgMessageField
                 {
                     Name = "clientOrderId",
                     Type = "char[20]",
@@ -314,15 +474,15 @@ namespace RC_GUI_WATS.Services
             }
         }
 
-        private static void ParseOrderAddResponse(byte[] data, CcgMessageDetails detailsParser)
+        private static void ParseOrderAddResponse(byte[] data, CcgMessageDetails details)
         {
-            ParseHeader(data, detailsParser);
+            ParseHeader(data, details);
             if (data.Length < 52) return;
 
             int offset = 16;
 
             var orderId = BitConverter.ToUInt64(data, offset);
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "orderId",
                 Type = "u64",
@@ -334,7 +494,7 @@ namespace RC_GUI_WATS.Services
             offset += 8;
 
             var publicOrderId = BitConverter.ToUInt64(data, offset);
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "publicOrderId",
                 Type = "u64",
@@ -346,7 +506,7 @@ namespace RC_GUI_WATS.Services
             offset += 8;
 
             var displayQty = BitConverter.ToUInt64(data, offset);
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "displayQty",
                 Type = "u64",
@@ -358,7 +518,7 @@ namespace RC_GUI_WATS.Services
             offset += 8;
 
             var filled = BitConverter.ToUInt64(data, offset);
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "filled",
                 Type = "u64",
@@ -370,7 +530,7 @@ namespace RC_GUI_WATS.Services
             offset += 8;
 
             var status = data[offset];
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "status",
                 Type = "enum",
@@ -382,7 +542,7 @@ namespace RC_GUI_WATS.Services
             offset += 1;
 
             var reason = BitConverter.ToUInt16(data, offset);
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "reason",
                 Type = "u16",
@@ -394,7 +554,7 @@ namespace RC_GUI_WATS.Services
             offset += 2;
 
             var execTypeReason = data[offset];
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "execTypeReason",
                 Type = "enum",
@@ -405,15 +565,15 @@ namespace RC_GUI_WATS.Services
             });
         }
 
-        private static void ParseTrade(byte[] data, CcgMessageDetails detailsParser)
+        private static void ParseTrade(byte[] data, CcgMessageDetails details)
         {
-            ParseHeader(data, detailsParser);
+            ParseHeader(data, details);
             if (data.Length < 52) return;
 
             int offset = 16;
 
             var orderId = BitConverter.ToUInt64(data, offset);
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "orderId",
                 Type = "u64",
@@ -425,7 +585,7 @@ namespace RC_GUI_WATS.Services
             offset += 8;
 
             var tradeId = BitConverter.ToUInt32(data, offset);
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "id",
                 Type = "u32",
@@ -437,7 +597,7 @@ namespace RC_GUI_WATS.Services
             offset += 4;
 
             var price = BitConverter.ToInt64(data, offset);
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "price",
                 Type = "i64",
@@ -449,7 +609,7 @@ namespace RC_GUI_WATS.Services
             offset += 8;
 
             var quantity = BitConverter.ToUInt64(data, offset);
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "quantity",
                 Type = "u64",
@@ -461,7 +621,7 @@ namespace RC_GUI_WATS.Services
             offset += 8;
 
             var leavesQty = BitConverter.ToUInt64(data, offset);
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "leavesQty",
                 Type = "u64",
@@ -472,15 +632,15 @@ namespace RC_GUI_WATS.Services
             });
         }
 
-        private static void ParseMassQuote(byte[] data, CcgMessageDetails detailsParser)
+        private static void ParseMassQuote(byte[] data, CcgMessageDetails details)
         {
-            ParseHeader(data, detailsParser);
+            ParseHeader(data, details);
             if (data.Length < 1200) return;
 
             int offset = 16;
 
             var stpId = data[offset];
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "stpId",
                 Type = "u8",
@@ -492,7 +652,7 @@ namespace RC_GUI_WATS.Services
             offset += 1;
 
             var capacity = data[offset];
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "capacity",
                 Type = "enum",
@@ -505,12 +665,10 @@ namespace RC_GUI_WATS.Services
 
             // Skip account and MiFID fields for brevity
             offset += 16 + 1 + 16; // account + accountType + mifidFields
-
-            // Skip memo and clearing member info
             offset += 18 + 20 + 1; // memo + clearingMemberCode + clearingMemberClearingIdentifier
 
             var quotesCount = data[offset];
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "quotes.count",
                 Type = "u8",
@@ -525,7 +683,7 @@ namespace RC_GUI_WATS.Services
             for (int i = 0; i < Math.Min((int)quotesCount, 3) && offset + 36 <= data.Length; i++)
             {
                 var instrumentId = BitConverter.ToUInt32(data, offset);
-                detailsParser.Fields.Add(new CcgMessageField
+                details.Fields.Add(new CcgMessageField
                 {
                     Name = $"quote[{i}].instrumentId",
                     Type = "u32",
@@ -537,7 +695,7 @@ namespace RC_GUI_WATS.Services
                 offset += 4;
 
                 var bidPrice = BitConverter.ToInt64(data, offset);
-                detailsParser.Fields.Add(new CcgMessageField
+                details.Fields.Add(new CcgMessageField
                 {
                     Name = $"quote[{i}].bid.price",
                     Type = "i64",
@@ -549,7 +707,7 @@ namespace RC_GUI_WATS.Services
                 offset += 8;
 
                 var bidQuantity = BitConverter.ToUInt64(data, offset);
-                detailsParser.Fields.Add(new CcgMessageField
+                details.Fields.Add(new CcgMessageField
                 {
                     Name = $"quote[{i}].bid.quantity",
                     Type = "u64",
@@ -561,7 +719,7 @@ namespace RC_GUI_WATS.Services
                 offset += 8;
 
                 var askPrice = BitConverter.ToInt64(data, offset);
-                detailsParser.Fields.Add(new CcgMessageField
+                details.Fields.Add(new CcgMessageField
                 {
                     Name = $"quote[{i}].ask.price",
                     Type = "i64",
@@ -573,7 +731,7 @@ namespace RC_GUI_WATS.Services
                 offset += 8;
 
                 var askQuantity = BitConverter.ToUInt64(data, offset);
-                detailsParser.Fields.Add(new CcgMessageField
+                details.Fields.Add(new CcgMessageField
                 {
                     Name = $"quote[{i}].ask.quantity",
                     Type = "u64",
@@ -587,7 +745,7 @@ namespace RC_GUI_WATS.Services
 
             if (quotesCount > 3)
             {
-                detailsParser.Fields.Add(new CcgMessageField
+                details.Fields.Add(new CcgMessageField
                 {
                     Name = "...",
                     Type = "info",
@@ -599,15 +757,15 @@ namespace RC_GUI_WATS.Services
             }
         }
 
-        private static void ParseReject(byte[] data, CcgMessageDetails detailsParser)
+        private static void ParseReject(byte[] data, CcgMessageDetails details)
         {
-            ParseHeader(data, detailsParser);
+            ParseHeader(data, details);
             if (data.Length < 21) return;
 
             int offset = 16;
 
             var refSeqNum = BitConverter.ToUInt32(data, offset);
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "refSeqNum",
                 Type = "u32",
@@ -619,7 +777,7 @@ namespace RC_GUI_WATS.Services
             offset += 4;
 
             var rejectReason = data[offset];
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "rejectReason",
                 Type = "enum",
@@ -630,15 +788,14 @@ namespace RC_GUI_WATS.Services
             });
         }
 
-        // Add other parsing methods for different message types...
-        private static void ParseOrderCancel(byte[] data, CcgMessageDetails detailsParser) 
-        { 
-            ParseHeader(data, detailsParser);
+        private static void ParseOrderCancel(byte[] data, CcgMessageDetails details)
+        {
+            ParseHeader(data, details);
             if (data.Length < 40) return;
 
             int offset = 16;
             var orderId = BitConverter.ToUInt64(data, offset);
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "orderId",
                 Type = "u64",
@@ -648,15 +805,15 @@ namespace RC_GUI_WATS.Services
                 Length = 8
             });
         }
-        
-        private static void ParseOrderCancelResponse(byte[] data, CcgMessageDetails detailsParser) 
-        { 
-            ParseHeader(data, detailsParser);
+
+        private static void ParseOrderCancelResponse(byte[] data, CcgMessageDetails details)
+        {
+            ParseHeader(data, details);
             if (data.Length < 28) return;
 
             int offset = 16;
             var orderId = BitConverter.ToUInt64(data, offset);
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "orderId",
                 Type = "u64",
@@ -668,7 +825,7 @@ namespace RC_GUI_WATS.Services
             offset += 8;
 
             var status = data[offset];
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "status",
                 Type = "enum",
@@ -678,15 +835,15 @@ namespace RC_GUI_WATS.Services
                 Length = 1
             });
         }
-        
-        private static void ParseOrderModify(byte[] data, CcgMessageDetails detailsParser) 
-        { 
-            ParseHeader(data, detailsParser);
+
+        private static void ParseOrderModify(byte[] data, CcgMessageDetails details)
+        {
+            ParseHeader(data, details);
             if (data.Length < 80) return;
 
             int offset = 16;
             var orderId = BitConverter.ToUInt64(data, offset);
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "orderId",
                 Type = "u64",
@@ -698,7 +855,7 @@ namespace RC_GUI_WATS.Services
             offset += 8;
 
             var price = BitConverter.ToInt64(data, offset);
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "price",
                 Type = "i64",
@@ -708,15 +865,15 @@ namespace RC_GUI_WATS.Services
                 Length = 8
             });
         }
-        
-        private static void ParseOrderModifyResponse(byte[] data, CcgMessageDetails detailsParser) 
-        { 
-            ParseHeader(data, detailsParser);
+
+        private static void ParseOrderModifyResponse(byte[] data, CcgMessageDetails details)
+        {
+            ParseHeader(data, details);
             if (data.Length < 36) return;
 
             int offset = 16;
             var orderId = BitConverter.ToUInt64(data, offset);
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "orderId",
                 Type = "u64",
@@ -726,15 +883,15 @@ namespace RC_GUI_WATS.Services
                 Length = 8
             });
         }
-        
-        private static void ParseMassQuoteResponse(byte[] data, CcgMessageDetails detailsParser) 
-        { 
-            ParseHeader(data, detailsParser);
+
+        private static void ParseMassQuoteResponse(byte[] data, CcgMessageDetails details)
+        {
+            ParseHeader(data, details);
             if (data.Length < 719) return;
 
             int offset = 16;
             var massQuoteId = BitConverter.ToUInt64(data, offset);
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "massQuoteId",
                 Type = "u64",
@@ -746,7 +903,7 @@ namespace RC_GUI_WATS.Services
             offset += 8;
 
             var responsesCount = data[offset];
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "responses.count",
                 Type = "u8",
@@ -756,15 +913,15 @@ namespace RC_GUI_WATS.Services
                 Length = 1
             });
         }
-        
-        private static void ParseTradeCaptureReportSingle(byte[] data, CcgMessageDetails detailsParser) 
-        { 
-            ParseHeader(data, detailsParser);
+
+        private static void ParseTradeCaptureReportSingle(byte[] data, CcgMessageDetails details)
+        {
+            ParseHeader(data, details);
             if (data.Length < 206) return;
 
             int offset = 16;
             var instrumentId = BitConverter.ToUInt32(data, offset);
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "instrumentId",
                 Type = "u32",
@@ -775,9 +932,8 @@ namespace RC_GUI_WATS.Services
             });
             offset += 4;
 
-            // tradeReportId (21 bytes)
             var tradeReportId = System.Text.Encoding.ASCII.GetString(data, offset, 21).TrimEnd('\0');
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "tradeReportId",
                 Type = "char[21]",
@@ -787,15 +943,15 @@ namespace RC_GUI_WATS.Services
                 Length = 21
             });
         }
-        
-        private static void ParseTradeCaptureReportDual(byte[] data, CcgMessageDetails detailsParser) 
-        { 
-            ParseHeader(data, detailsParser);
+
+        private static void ParseTradeCaptureReportDual(byte[] data, CcgMessageDetails details)
+        {
+            ParseHeader(data, details);
             if (data.Length < 271) return;
 
             int offset = 16;
             var instrumentId = BitConverter.ToUInt32(data, offset);
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "instrumentId",
                 Type = "u32",
@@ -805,15 +961,15 @@ namespace RC_GUI_WATS.Services
                 Length = 4
             });
         }
-        
-        private static void ParseConnectionClose(byte[] data, CcgMessageDetails detailsParser) 
-        { 
-            ParseHeader(data, detailsParser);
+
+        private static void ParseConnectionClose(byte[] data, CcgMessageDetails details)
+        {
+            ParseHeader(data, details);
             if (data.Length < 17) return;
 
             int offset = 16;
             var reason = data[offset];
-            detailsParser.Fields.Add(new CcgMessageField
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "reason",
                 Type = "enum",
@@ -823,12 +979,11 @@ namespace RC_GUI_WATS.Services
                 Length = 1
             });
         }
-        
-        private static void ParseHeartbeat(byte[] data, CcgMessageDetails detailsParser) 
-        { 
-            ParseHeader(data, detailsParser);
-            // Heartbeat contains only header - no additional fields
-            detailsParser.Fields.Add(new CcgMessageField
+
+        private static void ParseHeartbeat(byte[] data, CcgMessageDetails details)
+        {
+            ParseHeader(data, details);
+            details.Fields.Add(new CcgMessageField
             {
                 Name = "(heartbeat)",
                 Type = "info",
@@ -839,17 +994,16 @@ namespace RC_GUI_WATS.Services
             });
         }
 
-        private static void ParseGenericMessage(byte[] data, CcgMessageDetails detailsParser)
+        private static void ParseGenericMessage(byte[] data, CcgMessageDetails details)
         {
-            ParseHeader(data, detailsParser);
-            
-            // Show remaining bytes as hex dump
+            ParseHeader(data, details);
+
             if (data.Length > 16)
             {
                 var remainingBytes = new byte[data.Length - 16];
                 Array.Copy(data, 16, remainingBytes, 0, remainingBytes.Length);
-                
-                detailsParser.Fields.Add(new CcgMessageField
+
+                details.Fields.Add(new CcgMessageField
                 {
                     Name = "payload",
                     Type = "bytes",
@@ -959,6 +1113,20 @@ namespace RC_GUI_WATS.Services
             6 => "ConnectionConfigChanged",
             7 => "CloseOps",
             8 => "Disconnect",
+            _ => "Unknown"
+        };
+
+        private static string GetLoginResultName(byte result) => result switch
+        {
+            1 => "Ok",
+            2 => "NotFound",
+            3 => "InvalidToken",
+            4 => "AlreadyLoggedIn",
+            5 => "AccountLocked",
+            6 => "LoginNotAllowed",
+            7 => "InvalidLoginParameters",
+            8 => "ThrottlingTemporaryLock",
+            9 => "Other",
             _ => "Unknown"
         };
     }
