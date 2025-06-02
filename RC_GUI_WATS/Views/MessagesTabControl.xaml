@@ -17,347 +17,320 @@
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-    <!-- Panel Capital -->
-    <Grid Grid.Row="0" Margin="5">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="250"/>
-            <ColumnDefinition Width="200"/>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="Auto"/>
-        </Grid.ColumnDefinitions>
         
-        <!-- Left side - capital information -->
-        <Border BorderBrush="DarkGray" BorderThickness="1" Grid.Column="0">
-            <Grid Margin="5">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                
-                <!-- Capital Header -->
-                <TextBlock Grid.Row="0" Grid.ColumnSpan="2" Text="Capital" FontWeight="Bold" Margin="0,0,0,5"/>
-                
-                <!-- Open Capital -->
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="Open Capital:" Margin="0,0,10,0"/>
-                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding OpenCapitalText}" HorizontalAlignment="Right"/>
-                
-                <!-- Accrued Capital -->
-                <TextBlock Grid.Row="2" Grid.Column="0" Text="Accrued Capital:" Margin="0,0,10,0"/>
-                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding AccruedCapitalText}" HorizontalAlignment="Right"/>
-                
-                <!-- Total Capital -->
-                <TextBlock Grid.Row="3" Grid.Column="0" Text="Total Capital:" Margin="0,0,10,0"/>
-                <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding TotalCapitalText}" HorizontalAlignment="Right"/>
-                
-                <!-- Limits -->
-                <TextBlock Grid.Row="4" Grid.ColumnSpan="2" Text="Limits" FontWeight="Bold" Margin="0,10,0,5"/>
-                
-                <!-- Messages -->
-                <TextBlock Grid.Row="5" Grid.Column="0" Text="Messages:" Margin="0,0,10,0"/>
-                <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
-                    <TextBlock Text="{Binding MessagesPercentageText}" Foreground="{Binding MessagesPercentageBrush}"/>
-                    <TextBlock Text=" of "/>
-                    <TextBlock Text="{Binding CurrentCapital.MessagesLimit}"/>
-                </StackPanel>
-                
-                <!-- Capital -->
-                <TextBlock Grid.Row="6" Grid.Column="0" Text="Capital:" Margin="0,0,10,0"/>
-                <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
-                    <TextBlock Text="{Binding CurrentCapital.CapitalPercentage, StringFormat={}{0}%}" 
-                              Foreground="{Binding CapitalPercentageBrush}"/>
-                    <TextBlock Text=" of "/>
-                    <TextBlock Text="{Binding CurrentCapital.CapitalLimit}"/>
-                </StackPanel>
-            </Grid>
-        </Border>
-        
-        <!-- CCG Statistics -->
-        <Border BorderBrush="DarkGray" BorderThickness="1" Grid.Column="1" Margin="5,0,0,0">
-            <StackPanel Margin="5">
-                <TextBlock Text="CCG Messages" FontWeight="Bold" Margin="0,0,0,5"/>
-                <TextBlock Text="{Binding CcgMessageCountText}" FontSize="11"/>
-                <TextBlock Text="{Binding CcgStatisticsText}" FontSize="11" TextWrapping="Wrap" Margin="0,5,0,0"/>
-                <TextBlock Text="{Binding InstrumentMappingText}" FontSize="11" TextWrapping="Wrap" Margin="0,5,0,0" Foreground="DarkBlue"/>
-                
-                <!-- CCG Actions -->
-                <Button Content="Clear CCG" Command="{Binding ClearCcgMessagesCommand}" 
-                        Margin="0,10,0,0" Padding="5,2" FontSize="10"/>
-            </StackPanel>
-        </Border>
-        
-        <!-- Heartbeat indicator in the top right -->
-        <StackPanel Grid.Column="3" VerticalAlignment="Top" Margin="10,0,0,0">
-            <TextBlock Text="RC Server Status:" FontSize="11" Margin="0,0,0,2" Foreground="Gray"/>
-            <views:HeartbeatIndicatorControl DataContext="{Binding HeartbeatIndicator}"/>
-        </StackPanel>
-    </Grid>
-    
-    <!-- Positions DataGrid -->
-    <DataGrid Grid.Row="1" AutoGenerateColumns="False" 
-              ItemsSource="{Binding Positions}"
-              CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True" Margin="5">
-        <DataGrid.Columns>
-            <DataGridTextColumn Header="#" Binding="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type DataGridRow}}, Path=Header}" Width="30"/>
-            <DataGridTextColumn Header="ISIN" Binding="{Binding ISIN}" Width="120"/>
-            <DataGridTextColumn Header="Ticker" Binding="{Binding Ticker}" Width="80"/>
-            <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
-            <DataGridTextColumn Header="Net" Binding="{Binding Net}" Width="60"/>
-            <DataGridTextColumn Header="OpenLong" Binding="{Binding OpenLong}" Width="80"/>
-            <DataGridTextColumn Header="OpenShort" Binding="{Binding OpenShort}" Width="80"/>
-        </DataGrid.Columns>
-    </DataGrid>
-    
-    <!-- Splitter -->
-    <GridSplitter Grid.Row="2" Height="5" HorizontalAlignment="Stretch" 
-                  Background="LightGray" ResizeDirection="Rows"/>
-    
-    <!-- CCG Messages Section -->
-    <Grid Grid.Row="3" Margin="5">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
-        
-        <!-- CCG Messages Header and Filters -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,5">
-            <TextBlock Text="CCG Messages" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,15,0"/>
+        <!-- Panel Capital -->
+        <Grid Grid.Row="0" Margin="5">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="250"/>
+                <ColumnDefinition Width="200"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
             
-            <!-- Filters -->
-            <TextBlock Text="Type:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-            <TextBox Text="{Binding MessageTypeFilter, UpdateSourceTrigger=PropertyChanged}" 
-                     Width="100" Height="22" VerticalAlignment="Center" Margin="0,0,10,0"/>
-            
-            <TextBlock Text="Side:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-            <ComboBox SelectedItem="{Binding SideFilter}" Width="80" Height="22" VerticalAlignment="Center" Margin="0,0,10,0">
-                <ComboBoxItem Content=""/>
-                <ComboBoxItem Content="Buy"/>
-                <ComboBoxItem Content="Sell"/>
-                <ComboBoxItem Content="Trade"/>
-                <ComboBoxItem Content="Dual"/>
-                <ComboBoxItem Content="MassQuote"/>
-                <ComboBoxItem Content="MassQuoteResp"/>
-            </ComboBox>
-            
-            <TextBlock Text="InstrumentID:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-            <TextBox Text="{Binding InstrumentIdFilter, UpdateSourceTrigger=PropertyChanged}" 
-                     Width="80" Height="22" VerticalAlignment="Center" Margin="0,0,10,0"/>
-            
-            <Button Content="Clear Filters" Command="{Binding ClearFiltersCommand}" 
-                    Padding="5,2" VerticalAlignment="Center" Margin="0,0,5,0"/>
+            <!-- Left side - capital information -->
+            <Border BorderBrush="DarkGray" BorderThickness="1" Grid.Column="0">
+                <Grid Margin="5">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
                     
-            <CheckBox x:Name="ShowRawDataCheckBox" Content="Show Raw" VerticalAlignment="Center" Margin="5,0,0,0"/>
-        </StackPanel>
-        
-        <!-- CCG Messages DataGrid -->
-        <DataGrid Grid.Row="1" AutoGenerateColumns="False" 
-                  ItemsSource="{Binding CcgMessages}"
-                  CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True"
-                  GridLinesVisibility="All"
-                  FontSize="10" RowHeight="20">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Header" Binding="{Binding Header}" Width="50">
-                    <DataGridTextColumn.ElementStyle>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="ToolTip" Value="{Binding RawDataShort}"/>
-                        </Style>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
-                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="120"/>
-                <DataGridTextColumn Header="Date Received" Binding="{Binding DateReceivedDisplay}" Width="85"/>
-                <DataGridTextColumn Header="Transact Time" Binding="{Binding TransactTimeDisplay}" Width="85"/>
-                <DataGridTextColumn Header="Price" Binding="{Binding PriceDisplay}" Width="70">
-                    <DataGridTextColumn.ElementStyle>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="HorizontalAlignment" Value="Right"/>
-                        </Style>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
-                <DataGridTextColumn Header="Qty" Binding="{Binding QuantityDisplay}" Width="60">
-                    <DataGridTextColumn.ElementStyle>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="HorizontalAlignment" Value="Right"/>
-                        </Style>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
-                <DataGridTextColumn Header="Side" Binding="{Binding Side}" Width="80">
-                    <DataGridTextColumn.ElementStyle>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="HorizontalAlignment" Value="Center"/>
-                            <Style.Triggers>
-                                <Trigger Property="Text" Value="Buy">
-                                    <Setter Property="Foreground" Value="Green"/>
-                                    <Setter Property="FontWeight" Value="Bold"/>
-                                </Trigger>
-                                <Trigger Property="Text" Value="Sell">
-                                    <Setter Property="Foreground" Value="Red"/>
-                                    <Setter Property="FontWeight" Value="Bold"/>
-                                </Trigger>
-                                <Trigger Property="Text" Value="Trade">
-                                    <Setter Property="Foreground" Value="Blue"/>
-                                    <Setter Property="FontWeight" Value="Bold"/>
-                                </Trigger>
-                                <Trigger Property="Text" Value="MassQuote">
-                                    <Setter Property="Foreground" Value="Purple"/>
-                                    <Setter Property="FontWeight" Value="SemiBold"/>
-                                </Trigger>
-                                <Trigger Property="Text" Value="MassQuoteResp">
-                                    <Setter Property="Foreground" Value="DarkMagenta"/>
-                                    <Setter Property="FontWeight" Value="SemiBold"/>
-                                </Trigger>
-                            </Style.Triggers>
-                        </Style>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
-                <DataGridTextColumn Header="InstrumentId" Binding="{Binding InstrumentIdDisplay}" Width="80"/>
-                <!-- New ISIN column -->
-                <DataGridTextColumn Header="ISIN" Binding="{Binding ISINDisplay}" Width="100">
-                    <DataGridTextColumn.ElementStyle>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="FontFamily" Value="Consolas"/>
-                            <Setter Property="FontSize" Value="9"/>
-                            <Style.Triggers>
-                                <Trigger Property="Text" Value="">
-                                    <Setter Property="Foreground" Value="Gray"/>
-                                </Trigger>
-                                <DataTrigger Binding="{Binding InstrumentId}" Value="{x:Null}">
-                                    <Setter Property="Foreground" Value="LightGray"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
-                <!-- New Product Code column -->
-                <DataGridTextColumn Header="Product Code" Binding="{Binding ProductCodeDisplay}" Width="90">
-                    <DataGridTextColumn.ElementStyle>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="FontFamily" Value="Consolas"/>
-                            <Setter Property="FontSize" Value="9"/>
-                            <Style.Triggers>
-                                <Trigger Property="Text" Value="">
-                                    <Setter Property="Foreground" Value="Gray"/>
-                                </Trigger>
-                                <DataTrigger Binding="{Binding InstrumentId}" Value="{x:Null}">
-                                    <Setter Property="Foreground" Value="LightGray"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
-                <DataGridTextColumn Header="ClientOrderId" Binding="{Binding ClientOrderId}" Width="150"/>
-                <DataGridTextColumn Header="Raw Data" Binding="{Binding RawDataShort}" Width="200" Visibility="{Binding IsChecked, ElementName=ShowRawDataCheckBox, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-            </DataGrid.Columns>
+                    <!-- Capital Header -->
+                    <TextBlock Grid.Row="0" Grid.ColumnSpan="2" Text="Capital" FontWeight="Bold" Margin="0,0,0,5"/>
+                    
+                    <!-- Open Capital -->
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Open Capital:" Margin="0,0,10,0"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding OpenCapitalText}" HorizontalAlignment="Right"/>
+                    
+                    <!-- Accrued Capital -->
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Accrued Capital:" Margin="0,0,10,0"/>
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding AccruedCapitalText}" HorizontalAlignment="Right"/>
+                    
+                    <!-- Total Capital -->
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Total Capital:" Margin="0,0,10,0"/>
+                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding TotalCapitalText}" HorizontalAlignment="Right"/>
+                    
+                    <!-- Limits -->
+                    <TextBlock Grid.Row="4" Grid.ColumnSpan="2" Text="Limits" FontWeight="Bold" Margin="0,10,0,5"/>
+                    
+                    <!-- Messages -->
+                    <TextBlock Grid.Row="5" Grid.Column="0" Text="Messages:" Margin="0,0,10,0"/>
+                    <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <TextBlock Text="{Binding MessagesPercentageText}" Foreground="{Binding MessagesPercentageBrush}"/>
+                        <TextBlock Text=" of "/>
+                        <TextBlock Text="{Binding CurrentCapital.MessagesLimit}"/>
+                    </StackPanel>
+                    
+                    <!-- Capital -->
+                    <TextBlock Grid.Row="6" Grid.Column="0" Text="Capital:" Margin="0,0,10,0"/>
+                    <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <TextBlock Text="{Binding CurrentCapital.CapitalPercentage, StringFormat={}{0}%}" 
+                                  Foreground="{Binding CapitalPercentageBrush}"/>
+                        <TextBlock Text=" of "/>
+                        <TextBlock Text="{Binding CurrentCapital.CapitalLimit}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
             
-            <!-- Row styling based on message type -->
-            <DataGrid.RowStyle>
-                <Style TargetType="DataGridRow">
-                    <!-- Default background for alternating rows -->
-                    <Setter Property="Background" Value="White"/>
-                    <Setter Property="ToolTip" Value="{Binding RawDataHex}"/>
-                    <Style.Triggers>
-                        <!-- Mouse over effect -->
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="#F0F0F0"/>
-                        </Trigger>
-                        
-                        <!-- Error messages - highest priority -->
-                        <DataTrigger Binding="{Binding Header}" Value="ERROR">
-                            <Setter Property="Background" Value="Yellow"/>
-                            <Setter Property="FontWeight" Value="Bold"/>
-                        </DataTrigger>
-                        
-                        <!-- MassQuote messages - light purple -->
-                        <DataTrigger Binding="{Binding Name}" Value="MassQuote">
-                            <Setter Property="Background" Value="#E6E6FA"/>
-                            <Setter Property="FontWeight" Value="SemiBold"/>
-                        </DataTrigger>
-                        
-                        <!-- MassQuoteResponse - light magenta -->
-                        <DataTrigger Binding="{Binding Name}" Value="MassQuoteResponse">
-                            <Setter Property="Background" Value="#F0E6FF"/>
-                        </DataTrigger>
-                        
-                        <!-- OrderAdd - bright green -->
-                        <DataTrigger Binding="{Binding Name}" Value="OrderAdd">
-                            <Setter Property="Background" Value="LawnGreen"/>
-                            <!-- <Setter Property="FontWeight" Value="SemiBold"/> -->
-                        </DataTrigger>
-                        
-                        <!-- OrderAddResponse - light green -->
-                        <DataTrigger Binding="{Binding Name}" Value="OrderAddResponse">
-                            <Setter Property="Background" Value="#98FB98"/>
-                        </DataTrigger>
-                        
-                        <!-- Trade - light blue -->
-                        <DataTrigger Binding="{Binding Name}" Value="Trade">
-                            <Setter Property="Background" Value="#ADD8E6"/>
-                            <Setter Property="FontWeight" Value="SemiBold"/>
-                        </DataTrigger>
-                        
-                        <!-- Cancel messages - light coral -->
-                        <DataTrigger Binding="{Binding Name}" Value="OrderCancel">
-                            <Setter Property="Background" Value="Red"/>
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding Name}" Value="OrderCancelResponse">
-                            <Setter Property="Background" Value="#F08080"/>
-                        </DataTrigger>
-                        
-                        <!-- Modify messages - light yellow -->
-                        <DataTrigger Binding="{Binding Name}" Value="OrderModify">
-                            <Setter Property="Background" Value="#FFFFE0"/>
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding Name}" Value="OrderModifyResponse">
-                            <Setter Property="Background" Value="#FFFFE0"/>
-                        </DataTrigger>
-                        
-                        <!-- Mass Cancel messages - darker coral -->
-                        <DataTrigger Binding="{Binding Name}" Value="OrderMassCancel">
-                            <Setter Property="Background" Value="#FFB6C1"/>
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding Name}" Value="OrderMassCancelResponse">
-                            <Setter Property="Background" Value="#FFB6C1"/>
-                        </DataTrigger>
-                        
-                        <!-- Reject - pink -->
-                        <DataTrigger Binding="{Binding Name}" Value="Reject">
-                            <Setter Property="Background" Value="#FFC0CB"/>
-                            <Setter Property="FontWeight" Value="Bold"/>
-                        </DataTrigger>
-                        
-                        <!-- Login messages - orange (suspicious) -->
-                        <DataTrigger Binding="{Binding Name}" Value="Login">
-                            <Setter Property="Background" Value="#FFA500"/>
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding Name}" Value="LoginResponse">
-                            <Setter Property="Background" Value="#FFA500"/>
-                        </DataTrigger>
-                        
-                        <!-- Trade Capture Reports - light cyan -->
-                        <DataTrigger Binding="{Binding Name}" Value="TradeCaptureReportSingle">
-                            <Setter Property="Background" Value="#E0FFFF"/>
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding Name}" Value="TradeCaptureReportDual">
-                            <Setter Property="Background" Value="#E0FFFF"/>
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </DataGrid.RowStyle>
+            <!-- CCG Statistics -->
+            <Border BorderBrush="DarkGray" BorderThickness="1" Grid.Column="1" Margin="5,0,0,0">
+                <StackPanel Margin="5">
+                    <TextBlock Text="CCG Messages" FontWeight="Bold" Margin="0,0,0,5"/>
+                    <TextBlock Text="{Binding CcgMessageCountText}" FontSize="11"/>
+                    <TextBlock Text="{Binding CcgStatisticsText}" FontSize="11" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                    
+                    <!-- CCG Actions -->
+                    <Button Content="Clear CCG" Command="{Binding ClearCcgMessagesCommand}" 
+                            Margin="0,10,0,0" Padding="5,2" FontSize="10"/>
+                </StackPanel>
+            </Border>
+            
+            <!-- Heartbeat indicator in the top right -->
+            <StackPanel Grid.Column="3" VerticalAlignment="Top" Margin="10,0,0,0">
+                <TextBlock Text="RC Server Status:" FontSize="11" Margin="0,0,0,2" Foreground="Gray"/>
+                <views:HeartbeatIndicatorControl DataContext="{Binding HeartbeatIndicator}"/>
+            </StackPanel>
+        </Grid>
+        
+        <!-- Positions DataGrid -->
+        <DataGrid Grid.Row="1" AutoGenerateColumns="False" 
+                  ItemsSource="{Binding Positions}"
+                  CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True" Margin="5">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="#" Binding="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type DataGridRow}}, Path=Header}" Width="30"/>
+                <DataGridTextColumn Header="ISIN" Binding="{Binding ISIN}" Width="120"/>
+                <DataGridTextColumn Header="Ticker" Binding="{Binding Ticker}" Width="80"/>
+                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
+                <DataGridTextColumn Header="Net" Binding="{Binding Net}" Width="60"/>
+                <DataGridTextColumn Header="OpenLong" Binding="{Binding OpenLong}" Width="80"/>
+                <DataGridTextColumn Header="OpenShort" Binding="{Binding OpenShort}" Width="80"/>
+            </DataGrid.Columns>
         </DataGrid>
+        
+        <!-- Splitter -->
+        <GridSplitter Grid.Row="2" Height="5" HorizontalAlignment="Stretch" 
+                      Background="LightGray" ResizeDirection="Rows"/>
+        
+        <!-- CCG Messages Section -->
+        <Grid Grid.Row="3" Margin="5">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            
+            <!-- CCG Messages Header and Filters -->
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,5">
+                <TextBlock Text="CCG Messages" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                
+                <!-- Filters -->
+                <TextBlock Text="Type:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <TextBox Text="{Binding MessageTypeFilter, UpdateSourceTrigger=PropertyChanged}" 
+                         Width="100" Height="22" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                
+                <TextBlock Text="Side:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <ComboBox SelectedItem="{Binding SideFilter}" Width="80" Height="22" VerticalAlignment="Center" Margin="0,0,10,0">
+                    <ComboBoxItem Content=""/>
+                    <ComboBoxItem Content="Buy"/>
+                    <ComboBoxItem Content="Sell"/>
+                    <ComboBoxItem Content="Trade"/>
+                    <ComboBoxItem Content="Dual"/>
+                    <ComboBoxItem Content="MassQuote"/>
+                    <ComboBoxItem Content="MassQuoteResp"/>
+                </ComboBox>
+                
+                <TextBlock Text="InstrumentID:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <TextBox Text="{Binding InstrumentIdFilter, UpdateSourceTrigger=PropertyChanged}" 
+                         Width="80" Height="22" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                
+                <Button Content="Clear Filters" Command="{Binding ClearFiltersCommand}" 
+                        Padding="5,2" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        
+                <CheckBox x:Name="ShowRawDataCheckBox" Content="Show Raw" VerticalAlignment="Center" Margin="5,0,0,0"/>
+            </StackPanel>
+            
+            <!-- CCG Messages DataGrid -->
+            <DataGrid Grid.Row="1" AutoGenerateColumns="False" 
+                      ItemsSource="{Binding CcgMessages}"
+                      CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True"
+                      GridLinesVisibility="All"
+                      FontSize="10" RowHeight="20"
+                      MouseDoubleClick="CcgDataGrid_MouseDoubleClick"
+                      LoadingRow="CcgDataGrid_LoadingRow">
+                <DataGrid.InputBindings>
+                    <MouseBinding Gesture="LeftDoubleClick" 
+                                  Command="{Binding ShowCcgMessageDetailsCommand}"
+                                  CommandParameter="{Binding SelectedItem, RelativeSource={RelativeSource AncestorType=DataGrid}}"/>
+                </DataGrid.InputBindings>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Header" Binding="{Binding Header}" Width="50">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="ToolTip" Value="{Binding RawDataShort}"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="120"/>
+                    <DataGridTextColumn Header="Date Received" Binding="{Binding DateReceivedDisplay}" Width="85"/>
+                    <DataGridTextColumn Header="Transact Time" Binding="{Binding TransactTimeDisplay}" Width="85"/>
+                    <DataGridTextColumn Header="Price" Binding="{Binding PriceDisplay}" Width="70">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="HorizontalAlignment" Value="Right"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Qty" Binding="{Binding QuantityDisplay}" Width="60">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="HorizontalAlignment" Value="Right"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Side" Binding="{Binding Side}" Width="80">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="HorizontalAlignment" Value="Center"/>
+                                <Style.Triggers>
+                                    <Trigger Property="Text" Value="Buy">
+                                        <Setter Property="Foreground" Value="Green"/>
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                    </Trigger>
+                                    <Trigger Property="Text" Value="Sell">
+                                        <Setter Property="Foreground" Value="Red"/>
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                    </Trigger>
+                                    <Trigger Property="Text" Value="Trade">
+                                        <Setter Property="Foreground" Value="Blue"/>
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                    </Trigger>
+                                    <Trigger Property="Text" Value="MassQuote">
+                                        <Setter Property="Foreground" Value="Purple"/>
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                    </Trigger>
+                                    <Trigger Property="Text" Value="MassQuoteResp">
+                                        <Setter Property="Foreground" Value="DarkMagenta"/>
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="InstrumentId" Binding="{Binding InstrumentIdDisplay}" Width="80"/>
+                    <DataGridTextColumn Header="ClientOrderId" Binding="{Binding ClientOrderId}" Width="150"/>
+                    <DataGridTextColumn Header="Raw Data" Binding="{Binding RawDataShort}" Width="200" Visibility="{Binding IsChecked, ElementName=ShowRawDataCheckBox, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                </DataGrid.Columns>
+                
+                <!-- Row styling based on message type -->
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <!-- Default background for alternating rows -->
+                        <Setter Property="Background" Value="White"/>
+                        <Setter Property="ToolTip" Value="{Binding RawDataHex}"/>
+                        <Style.Triggers>
+                            <!-- Mouse over effect -->
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#F0F0F0"/>
+                            </Trigger>
+                            
+                            <!-- Error messages - highest priority -->
+                            <DataTrigger Binding="{Binding Header}" Value="ERROR">
+                                <Setter Property="Background" Value="Yellow"/>
+                                <Setter Property="FontWeight" Value="Bold"/>
+                            </DataTrigger>
+                            
+                            <!-- MassQuote messages - light purple -->
+                            <DataTrigger Binding="{Binding Name}" Value="MassQuote">
+                                <Setter Property="Background" Value="#E6E6FA"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </DataTrigger>
+                            
+                            <!-- MassQuoteResponse - light magenta -->
+                            <DataTrigger Binding="{Binding Name}" Value="MassQuoteResponse">
+                                <Setter Property="Background" Value="#F0E6FF"/>
+                            </DataTrigger>
+                            
+                            <!-- OrderAdd - bright green -->
+                            <DataTrigger Binding="{Binding Name}" Value="OrderAdd">
+                                <Setter Property="Background" Value="LawnGreen"/>
+                                <!-- <Setter Property="FontWeight" Value="SemiBold"/> -->
+                            </DataTrigger>
+                            
+                            <!-- OrderAddResponse - light green -->
+                            <DataTrigger Binding="{Binding Name}" Value="OrderAddResponse">
+                                <Setter Property="Background" Value="#98FB98"/>
+                            </DataTrigger>
+                            
+                            <!-- Trade - light blue -->
+                            <DataTrigger Binding="{Binding Name}" Value="Trade">
+                                <Setter Property="Background" Value="#ADD8E6"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </DataTrigger>
+                            
+                            <!-- Cancel messages - light coral -->
+                            <DataTrigger Binding="{Binding Name}" Value="OrderCancel">
+                                <Setter Property="Background" Value="Red"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Name}" Value="OrderCancelResponse">
+                                <Setter Property="Background" Value="#F08080"/>
+                            </DataTrigger>
+                            
+                            <!-- Modify messages - light yellow -->
+                            <DataTrigger Binding="{Binding Name}" Value="OrderModify">
+                                <Setter Property="Background" Value="#FFFFE0"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Name}" Value="OrderModifyResponse">
+                                <Setter Property="Background" Value="#FFFFE0"/>
+                            </DataTrigger>
+                            
+                            <!-- Mass Cancel messages - darker coral -->
+                            <DataTrigger Binding="{Binding Name}" Value="OrderMassCancel">
+                                <Setter Property="Background" Value="#FFB6C1"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Name}" Value="OrderMassCancelResponse">
+                                <Setter Property="Background" Value="#FFB6C1"/>
+                            </DataTrigger>
+                            
+                            <!-- Reject - pink -->
+                            <DataTrigger Binding="{Binding Name}" Value="Reject">
+                                <Setter Property="Background" Value="#FFC0CB"/>
+                                <Setter Property="FontWeight" Value="Bold"/>
+                            </DataTrigger>
+                            
+                            <!-- Login messages - orange (suspicious) -->
+                            <DataTrigger Binding="{Binding Name}" Value="Login">
+                                <Setter Property="Background" Value="#FFA500"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Name}" Value="LoginResponse">
+                                <Setter Property="Background" Value="#FFA500"/>
+                            </DataTrigger>
+                            
+                            <!-- Trade Capture Reports - light cyan -->
+                            <DataTrigger Binding="{Binding Name}" Value="TradeCaptureReportSingle">
+                                <Setter Property="Background" Value="#E0FFFF"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Name}" Value="TradeCaptureReportDual">
+                                <Setter Property="Background" Value="#E0FFFF"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+            </DataGrid>
+        </Grid>
+        
+        <!-- Buttons panel -->
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Left" Margin="5">
+            <Button Content="Kill switch" Background="Red" Foreground="White" 
+                    Command="{Binding AllSwitchCommand}"
+                    Padding="10,2" Margin="0,0,5,0"/>
+        </StackPanel>
     </Grid>
-    
-    <!-- Buttons panel -->
-    <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Left" Margin="5">
-        <Button Content="Kill switch" Background="Red" Foreground="White" 
-                Command="{Binding AllSwitchCommand}"
-                Padding="10,2" Margin="0,0,5,0"/>
-    </StackPanel>
-</Grid>
 </UserControl>
