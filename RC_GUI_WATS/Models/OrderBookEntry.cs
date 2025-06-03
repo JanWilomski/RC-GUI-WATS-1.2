@@ -1,7 +1,8 @@
-﻿// Models/OrderBookEntry.cs
+﻿// Models/OrderBookEntry.cs - Enhanced version with better modification support
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 
 namespace RC_GUI_WATS.Models
 {
@@ -55,6 +56,7 @@ namespace RC_GUI_WATS.Models
             {
                 _lastExecTypeReason = value;
                 OnPropertyChanged(nameof(LastExecTypeReason));
+                OnPropertyChanged(nameof(StatusDisplay));
             }
         }
         
@@ -78,6 +80,23 @@ namespace RC_GUI_WATS.Models
         public int ModificationCount => Modifications.Count;
         public string InstrumentDisplay => !string.IsNullOrEmpty(ProductCode) ? ProductCode : InstrumentId?.ToString() ?? "";
         
+        // Advanced modification info
+        public string ModificationsDisplay => GetModificationsDisplay();
+        public string LastModificationDisplay => GetLastModificationDisplay();
+        public bool HasModifications => Modifications.Count > 0;
+        public bool HasSuccessfulModifications => Modifications.Any(m => m.Status == "Accepted");
+        public bool HasRejectedModifications => Modifications.Any(m => m.Status == "Rejected");
+        public bool HasPendingModifications => Modifications.Any(m => m.Status == "Pending");
+        
+        // Cancel attempts info
+        public int CancelAttemptCount => CancelAttempts.Count;
+        public bool HasCancelAttempts => CancelAttempts.Count > 0;
+        public bool HasPendingCancels => CancelAttempts.Any(c => c.Status == "Pending");
+        
+        // Trade info
+        public decimal? AveragePrice => GetAveragePrice();
+        public string TradesDisplay => GetTradesDisplay();
+        
         private string GetStatusDisplay()
         {
             if (!string.IsNullOrEmpty(LastExecTypeReason) && LastExecTypeReason != "NA")
@@ -85,6 +104,72 @@ namespace RC_GUI_WATS.Models
                 return $"{Status} ({LastExecTypeReason})";
             }
             return Status;
+        }
+        
+        private string GetModificationsDisplay()
+        {
+            if (Modifications.Count == 0)
+                return "None";
+            
+            var accepted = Modifications.Count(m => m.Status == "Accepted");
+            var rejected = Modifications.Count(m => m.Status == "Rejected");
+            var pending = Modifications.Count(m => m.Status == "Pending");
+            
+            var parts = new List<string>();
+            if (accepted > 0) parts.Add($"{accepted}✓");
+            if (rejected > 0) parts.Add($"{rejected}✗");
+            if (pending > 0) parts.Add($"{pending}⏳");
+            
+            return string.Join(" ", parts);
+        }
+        
+        private string GetLastModificationDisplay()
+        {
+            var lastMod = Modifications.LastOrDefault();
+            if (lastMod == null)
+                return "";
+            
+            var statusIcon = lastMod.Status switch
+            {
+                "Accepted" => "✓",
+                "Rejected" => "✗",
+                "Pending" => "⏳",
+                _ => "?"
+            };
+            
+            return $"{lastMod.FieldModified} {statusIcon}";
+        }
+        
+        private decimal? GetAveragePrice()
+        {
+            if (Trades.Count == 0 || FilledQuantity == 0)
+                return null;
+            
+            decimal totalValue = 0;
+            ulong totalQuantity = 0;
+            
+            foreach (var trade in Trades)
+            {
+                totalValue += trade.Price * (decimal)trade.Quantity;
+                totalQuantity += trade.Quantity;
+            }
+            
+            return totalQuantity > 0 ? totalValue / (decimal)totalQuantity : null;
+        }
+        
+        private string GetTradesDisplay()
+        {
+            if (Trades.Count == 0)
+                return "None";
+            
+            if (Trades.Count == 1)
+            {
+                var trade = Trades[0];
+                return $"1 @ {trade.Price:F4}";
+            }
+            
+            var avgPrice = GetAveragePrice();
+            return $"{Trades.Count} @ avg {avgPrice:F4}";
         }
         
         protected virtual void OnPropertyChanged(string propertyName)
@@ -103,29 +188,52 @@ namespace RC_GUI_WATS.Models
         
         public string PriceDisplay => Price.ToString("F4");
         public string ExecutionTimeDisplay => ExecutionTime.ToString("HH:mm:ss.fff");
+        public string TradeDisplay => $"{Quantity} @ {Price:F4}";
     }
 
     public class OrderModification
     {
         public DateTime ModificationTime { get; set; }
         public string ModificationType { get; set; } = ""; // Price, Quantity, etc.
+        public string FieldModified { get; set; } = ""; // Which field was modified
         public string OldValue { get; set; } = "";
         public string NewValue { get; set; } = "";
-        public string Status { get; set; } = ""; // Accepted, Rejected
+        public string Status { get; set; } = ""; // Accepted, Rejected, Pending
         public string RejectReason { get; set; } = "";
+        public bool PriorityRetained { get; set; } = false; // From OrderModifyResponse
+        public Dictionary<string, string> ModificationDetails { get; set; } = new Dictionary<string, string>();
         
         public string ModificationTimeDisplay => ModificationTime.ToString("HH:mm:ss.fff");
-        public string ChangeDescription => $"{ModificationType}: {OldValue} → {NewValue}";
+        public string ChangeDescription => $"{FieldModified}: {OldValue} → {NewValue}";
+        public string StatusIcon => Status switch
+        {
+            "Accepted" => "✓",
+            "Rejected" => "✗", 
+            "Pending" => "⏳",
+            _ => "?"
+        };
+        public string PriorityDisplay => PriorityRetained ? "Retained" : "Lost";
+        public string ModificationSummary => $"{ChangeDescription} {StatusIcon}" + 
+                                           (Status == "Rejected" && !string.IsNullOrEmpty(RejectReason) ? $" ({RejectReason})" : "");
     }
 
     public class OrderCancelAttempt
     {
         public DateTime CancelTime { get; set; }
-        public string Status { get; set; } = ""; // Accepted, Rejected
+        public string Status { get; set; } = ""; // Accepted, Rejected, Pending
         public string RejectReason { get; set; } = "";
         public string CancelReason { get; set; } = ""; // User, System, etc.
         
         public string CancelTimeDisplay => CancelTime.ToString("HH:mm:ss.fff");
+        public string StatusIcon => Status switch
+        {
+            "Accepted" => "✓",
+            "Rejected" => "✗",
+            "Pending" => "⏳",
+            _ => "?"
+        };
+        public string CancelSummary => $"{CancelReason} {StatusIcon}" + 
+                                     (Status == "Rejected" && !string.IsNullOrEmpty(RejectReason) ? $" ({RejectReason})" : "");
     }
 
     // Enums for better type safety
