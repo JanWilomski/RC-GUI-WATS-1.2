@@ -1,4 +1,4 @@
-﻿// Models/OrderBookEntry.cs - Enhanced version with better modification support
+﻿// Models/OrderBookEntry.cs - Enhanced version with better modification support and UI notifications
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -96,6 +96,80 @@ namespace RC_GUI_WATS.Models
         // Trade info
         public decimal? AveragePrice => GetAveragePrice();
         public string TradesDisplay => GetTradesDisplay();
+
+        // Methods to notify about collection changes
+        public void AddModification(OrderModification modification)
+        {
+            Modifications.Add(modification);
+            NotifyModificationsChanged();
+        }
+
+        public void UpdateLastModification(Action<OrderModification> updateAction)
+        {
+            var lastMod = Modifications.LastOrDefault();
+            if (lastMod != null)
+            {
+                updateAction(lastMod);
+                NotifyModificationsChanged();
+            }
+        }
+
+        public void AddTrade(OrderTrade trade)
+        {
+            Trades.Add(trade);
+            NotifyTradesChanged();
+        }
+
+        public void AddCancelAttempt(OrderCancelAttempt cancelAttempt)
+        {
+            CancelAttempts.Add(cancelAttempt);
+            NotifyCancelAttemptsChanged();
+        }
+
+        public void UpdateLastCancelAttempt(Action<OrderCancelAttempt> updateAction)
+        {
+            var lastCancel = CancelAttempts.LastOrDefault();
+            if (lastCancel != null)
+            {
+                updateAction(lastCancel);
+                NotifyCancelAttemptsChanged();
+            }
+        }
+
+        private void NotifyModificationsChanged()
+        {
+            OnPropertyChanged(nameof(ModificationCount));
+            OnPropertyChanged(nameof(ModificationsDisplay));
+            OnPropertyChanged(nameof(LastModificationDisplay));
+            OnPropertyChanged(nameof(HasModifications));
+            OnPropertyChanged(nameof(HasSuccessfulModifications));
+            OnPropertyChanged(nameof(HasRejectedModifications));
+            OnPropertyChanged(nameof(HasPendingModifications));
+        }
+
+        private void NotifyTradesChanged()
+        {
+            OnPropertyChanged(nameof(TradeCount));
+            OnPropertyChanged(nameof(TradesDisplay));
+            OnPropertyChanged(nameof(AveragePrice));
+        }
+
+        private void NotifyCancelAttemptsChanged()
+        {
+            OnPropertyChanged(nameof(CancelAttemptCount));
+            OnPropertyChanged(nameof(HasCancelAttempts));
+            OnPropertyChanged(nameof(HasPendingCancels));
+        }
+
+        // Method to update basic properties and notify UI
+        public void UpdateBasicProperties()
+        {
+            OnPropertyChanged(nameof(PriceDisplay));
+            OnPropertyChanged(nameof(TriggerPriceDisplay));
+            OnPropertyChanged(nameof(QuantityInfo));
+            OnPropertyChanged(nameof(LastModifiedTimeDisplay));
+            OnPropertyChanged(nameof(InstrumentDisplay));
+        }
         
         private string GetStatusDisplay()
         {

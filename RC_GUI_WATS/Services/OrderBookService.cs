@@ -1,4 +1,4 @@
-﻿// Services/OrderBookService.cs - Enhanced version with better modifications handling
+﻿// Services/OrderBookService.cs - Enhanced version with proper UI notifications for modifications
 using System;
 using System.Collections.ObjectModel;
 using System.Collections.Generic;
@@ -44,6 +44,7 @@ namespace RC_GUI_WATS.Services
                     foreach (var order in _orders)
                     {
                         MapInstrumentData(order);
+                        order.UpdateBasicProperties();
                     }
                 });
             }
@@ -153,6 +154,7 @@ namespace RC_GUI_WATS.Services
                         }
                         
                         entry.LastModifiedTime = message.DateReceived;
+                        entry.UpdateBasicProperties();
                         
                         MapInstrumentData(entry);
                         OrderUpdated?.Invoke(entry);
@@ -211,8 +213,10 @@ namespace RC_GUI_WATS.Services
                         modification.NewValue = "Various";
                     }
                     
-                    entry.Modifications.Add(modification);
+                    // Use new method to add modification and notify UI
+                    entry.AddModification(modification);
                     entry.LastModifiedTime = message.DateReceived;
+                    entry.UpdateBasicProperties();
                     OrderUpdated?.Invoke(entry);
                     
                     System.Diagnostics.Debug.WriteLine($"OrderModify: OrderId={orderId}, Field={modification.FieldModified}, Old={modification.OldValue}, New={modification.NewValue}");
@@ -243,30 +247,33 @@ namespace RC_GUI_WATS.Services
                             byte priorityFlag = message.RawData[33];
                             ushort reason = BitConverter.ToUInt16(message.RawData, 34);
                             
-                            // Update the latest modification with response
-                            var latestMod = entry.Modifications.LastOrDefault();
-                            if (latestMod != null && latestMod.Status == "Pending")
+                            // Update the latest modification with response using new method
+                            entry.UpdateLastModification(latestMod =>
                             {
-                                if (status == 1) // New status = successful modification
+                                if (latestMod.Status == "Pending")
                                 {
-                                    latestMod.Status = "Accepted";
-                                    latestMod.PriorityRetained = priorityFlag == 2; // 2 = Retained
-                                    
-                                    // Apply the modification to the order if successful
-                                    ApplyModificationToOrder(entry, latestMod);
+                                    if (status == 1) // New status = successful modification
+                                    {
+                                        latestMod.Status = "Accepted";
+                                        latestMod.PriorityRetained = priorityFlag == 2; // 2 = Retained
+                                        
+                                        // Apply the modification to the order if successful
+                                        ApplyModificationToOrder(entry, latestMod);
+                                    }
+                                    else
+                                    {
+                                        latestMod.Status = "Rejected";
+                                        latestMod.RejectReason = GetRejectReasonName(reason);
+                                    }
                                 }
-                                else
-                                {
-                                    latestMod.Status = "Rejected";
-                                    latestMod.RejectReason = GetRejectReasonName(reason);
-                                }
-                            }
+                            });
                             
                             // Update filled quantity
                             entry.FilledQuantity = filled;
                             entry.CurrentQuantity = entry.OriginalQuantity - filled;
                             entry.Status = GetOrderStatusName(status);
                             entry.LastModifiedTime = message.DateReceived;
+                            entry.UpdateBasicProperties();
                             
                             OrderUpdated?.Invoke(entry);
                             
@@ -297,8 +304,10 @@ namespace RC_GUI_WATS.Services
                         CancelReason = "User Request"
                     };
                     
-                    entry.CancelAttempts.Add(cancelAttempt);
+                    // Use new method to add cancel attempt and notify UI
+                    entry.AddCancelAttempt(cancelAttempt);
                     entry.LastModifiedTime = message.DateReceived;
+                    entry.UpdateBasicProperties();
                     OrderUpdated?.Invoke(entry);
                 }
             });
@@ -322,24 +331,27 @@ namespace RC_GUI_WATS.Services
                             ushort reason = BitConverter.ToUInt16(message.RawData, 25);
                             byte execTypeReason = message.RawData[27];
                             
-                            // Update the latest cancel attempt
-                            var latestCancel = entry.CancelAttempts.LastOrDefault();
-                            if (latestCancel != null && latestCancel.Status == "Pending")
+                            // Update the latest cancel attempt using new method
+                            entry.UpdateLastCancelAttempt(latestCancel =>
                             {
-                                if (status == 2) // Cancelled status
+                                if (latestCancel.Status == "Pending")
                                 {
-                                    latestCancel.Status = "Accepted";
+                                    if (status == 2) // Cancelled status
+                                    {
+                                        latestCancel.Status = "Accepted";
+                                    }
+                                    else
+                                    {
+                                        latestCancel.Status = "Rejected";
+                                        latestCancel.RejectReason = GetRejectReasonName(reason);
+                                    }
                                 }
-                                else
-                                {
-                                    latestCancel.Status = "Rejected";
-                                    latestCancel.RejectReason = GetRejectReasonName(reason);
-                                }
-                            }
+                            });
                             
                             entry.Status = GetOrderStatusName(status);
                             entry.LastExecTypeReason = GetExecTypeReasonName(execTypeReason);
                             entry.LastModifiedTime = message.DateReceived;
+                            entry.UpdateBasicProperties();
                             OrderUpdated?.Invoke(entry);
                         }
                         catch (Exception ex)
@@ -381,7 +393,8 @@ namespace RC_GUI_WATS.Services
                                 ExecutionTime = message.DateReceived
                             };
                             
-                            entry.Trades.Add(trade);
+                            // Use new method to add trade and notify UI
+                            entry.AddTrade(trade);
                             entry.FilledQuantity += quantity;
                             entry.CurrentQuantity = leavesQty;
                             
@@ -396,6 +409,7 @@ namespace RC_GUI_WATS.Services
                             }
                             
                             entry.LastModifiedTime = message.DateReceived;
+                            entry.UpdateBasicProperties();
                             OrderUpdated?.Invoke(entry);
                         }
                         catch (Exception ex)
