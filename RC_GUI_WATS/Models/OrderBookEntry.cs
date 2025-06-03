@@ -1,163 +1,160 @@
 ﻿// Models/OrderBookEntry.cs
 using System;
-using System.Collections.ObjectModel;
-using RC_GUI_WATS.ViewModels;
+using System.Collections.Generic;
+using System.ComponentModel;
 
 namespace RC_GUI_WATS.Models
 {
-    public class OrderBookEntry : BaseViewModel
+    public class OrderBookEntry : INotifyPropertyChanged
     {
-        private ulong _orderId;
-        public ulong OrderId
-        {
-            get => _orderId;
-            set => SetProperty(ref _orderId, value);
-        }
+        public event PropertyChangedEventHandler PropertyChanged;
 
-        private ulong? _publicOrderId;
-        public ulong? PublicOrderId
-        {
-            get => _publicOrderId;
-            set => SetProperty(ref _publicOrderId, value);
-        }
-
-        private uint? _instrumentId;
-        public uint? InstrumentId
-        {
-            get => _instrumentId;
-            set => SetProperty(ref _instrumentId, value);
-        }
-
-        private string _isin;
-        public string ISIN
-        {
-            get => _isin;
-            set => SetProperty(ref _isin, value);
-        }
-
-        private string _productCode;
-        public string ProductCode
-        {
-            get => _productCode;
-            set => SetProperty(ref _productCode, value);
-        }
-
-        private string _side;
-        public string Side
-        {
-            get => _side;
-            set => SetProperty(ref _side, value);
-        }
-
-        private decimal _price;
-        public decimal Price
-        {
-            get => _price;
-            set => SetProperty(ref _price, value);
-        }
-
-        private ulong _originalQuantity;
-        public ulong OriginalQuantity
-        {
-            get => _originalQuantity;
-            set => SetProperty(ref _originalQuantity, value);
-        }
-
-        private ulong _currentQuantity;
-        public ulong CurrentQuantity
-        {
-            get => _currentQuantity;
-            set => SetProperty(ref _currentQuantity, value);
-        }
-
-        private ulong _filledQuantity;
-        public ulong FilledQuantity
-        {
-            get => _filledQuantity;
-            set => SetProperty(ref _filledQuantity, value);
-        }
-
-        private ulong _displayQuantity;
-        public ulong DisplayQuantity
-        {
-            get => _displayQuantity;
-            set => SetProperty(ref _displayQuantity, value);
-        }
-
-        private string _orderType;
-        public string OrderType
-        {
-            get => _orderType;
-            set => SetProperty(ref _orderType, value);
-        }
-
-        private string _timeInForce;
-        public string TimeInForce
-        {
-            get => _timeInForce;
-            set => SetProperty(ref _timeInForce, value);
-        }
-
-        private string _status;
+        // Identifiers
+        public ulong OrderId { get; set; }
+        public ulong? PublicOrderId { get; set; }
+        public string ClientOrderId { get; set; } = "";
+        
+        // Instrument info
+        public uint? InstrumentId { get; set; }
+        public string ISIN { get; set; } = "";
+        public string ProductCode { get; set; } = "";
+        
+        // Order details
+        public string Side { get; set; } = ""; // Buy/Sell
+        public string OrderType { get; set; } = ""; // Limit, Market, etc.
+        public string TimeInForce { get; set; } = ""; // Day, GTC, etc.
+        
+        // Quantities
+        public ulong OriginalQuantity { get; set; }
+        public ulong CurrentQuantity { get; set; } // Original - Filled
+        public ulong FilledQuantity { get; set; }
+        public ulong? DisplayQuantity { get; set; } // For iceberg orders
+        
+        // Prices
+        public decimal? Price { get; set; }
+        public decimal? TriggerPrice { get; set; } // For stop orders
+        
+        // Status
+        private string _status = "";
         public string Status
         {
             get => _status;
-            set => SetProperty(ref _status, value);
+            set
+            {
+                _status = value;
+                OnPropertyChanged(nameof(Status));
+                OnPropertyChanged(nameof(StatusDisplay));
+            }
         }
-
-        private DateTime _createdTime;
-        public DateTime CreatedTime
+        
+        private string _lastExecTypeReason = "";
+        public string LastExecTypeReason
         {
-            get => _createdTime;
-            set => SetProperty(ref _createdTime, value);
+            get => _lastExecTypeReason;
+            set
+            {
+                _lastExecTypeReason = value;
+                OnPropertyChanged(nameof(LastExecTypeReason));
+            }
         }
-
-        private DateTime _lastUpdateTime;
-        public DateTime LastUpdateTime
+        
+        // Timestamps
+        public DateTime CreatedTime { get; set; }
+        public DateTime LastModifiedTime { get; set; }
+        
+        // Collections for tracking changes
+        public List<OrderTrade> Trades { get; set; } = new List<OrderTrade>();
+        public List<OrderModification> Modifications { get; set; } = new List<OrderModification>();
+        public List<OrderCancelAttempt> CancelAttempts { get; set; } = new List<OrderCancelAttempt>();
+        
+        // Display properties
+        public string StatusDisplay => GetStatusDisplay();
+        public string PriceDisplay => Price?.ToString("F4") ?? "";
+        public string TriggerPriceDisplay => TriggerPrice?.ToString("F4") ?? "";
+        public string QuantityInfo => $"{FilledQuantity}/{OriginalQuantity}";
+        public string CreatedTimeDisplay => CreatedTime.ToString("HH:mm:ss.fff");
+        public string LastModifiedTimeDisplay => LastModifiedTime.ToString("HH:mm:ss.fff");
+        public int TradeCount => Trades.Count;
+        public int ModificationCount => Modifications.Count;
+        public string InstrumentDisplay => !string.IsNullOrEmpty(ProductCode) ? ProductCode : InstrumentId?.ToString() ?? "";
+        
+        private string GetStatusDisplay()
         {
-            get => _lastUpdateTime;
-            set => SetProperty(ref _lastUpdateTime, value);
+            if (!string.IsNullOrEmpty(LastExecTypeReason) && LastExecTypeReason != "NA")
+            {
+                return $"{Status} ({LastExecTypeReason})";
+            }
+            return Status;
         }
-
-        private string _clientOrderId;
-        public string ClientOrderId
+        
+        protected virtual void OnPropertyChanged(string propertyName)
         {
-            get => _clientOrderId;
-            set => SetProperty(ref _clientOrderId, value);
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
-
-        private int _modificationCount;
-        public int ModificationCount
-        {
-            get => _modificationCount;
-            set => SetProperty(ref _modificationCount, value);
-        }
-
-        private int _tradeCount;
-        public int TradeCount
-        {
-            get => _tradeCount;
-            set => SetProperty(ref _tradeCount, value);
-        }
-
-        // History of all related CCG messages
-        public ObservableCollection<OrderEvent> Events { get; } = new ObservableCollection<OrderEvent>();
-
-        // Display helpers
-        public string PriceDisplay => Price.ToString("F4");
-        public string FilledDisplay => $"{FilledQuantity}/{OriginalQuantity}";
-        public string FillPercentage => OriginalQuantity > 0 
-            ? $"{(FilledQuantity * 100.0 / OriginalQuantity):F1}%" 
-            : "0%";
     }
 
-    public class OrderEvent : BaseViewModel
+    public class OrderTrade
     {
-        public DateTime Timestamp { get; set; }
-        public string EventType { get; set; } // Add, Modify, Cancel, Trade, etc.
-        public string Description { get; set; }
-        public string OldValue { get; set; }
-        public string NewValue { get; set; }
-        public uint? SequenceNumber { get; set; }
+        public uint TradeId { get; set; }
+        public decimal Price { get; set; }
+        public ulong Quantity { get; set; }
+        public ulong LeavesQuantity { get; set; }
+        public DateTime ExecutionTime { get; set; }
+        
+        public string PriceDisplay => Price.ToString("F4");
+        public string ExecutionTimeDisplay => ExecutionTime.ToString("HH:mm:ss.fff");
+    }
+
+    public class OrderModification
+    {
+        public DateTime ModificationTime { get; set; }
+        public string ModificationType { get; set; } = ""; // Price, Quantity, etc.
+        public string OldValue { get; set; } = "";
+        public string NewValue { get; set; } = "";
+        public string Status { get; set; } = ""; // Accepted, Rejected
+        public string RejectReason { get; set; } = "";
+        
+        public string ModificationTimeDisplay => ModificationTime.ToString("HH:mm:ss.fff");
+        public string ChangeDescription => $"{ModificationType}: {OldValue} → {NewValue}";
+    }
+
+    public class OrderCancelAttempt
+    {
+        public DateTime CancelTime { get; set; }
+        public string Status { get; set; } = ""; // Accepted, Rejected
+        public string RejectReason { get; set; } = "";
+        public string CancelReason { get; set; } = ""; // User, System, etc.
+        
+        public string CancelTimeDisplay => CancelTime.ToString("HH:mm:ss.fff");
+    }
+
+    // Enums for better type safety
+    public enum OrderStatus
+    {
+        Unknown,
+        New,
+        PartiallyFilled,
+        Filled,
+        Cancelled,
+        Rejected,
+        Expired
+    }
+
+    public enum OrderSideEnum
+    {
+        Unknown,
+        Buy,
+        Sell
+    }
+
+    public enum OrderTypeEnum
+    {
+        Unknown,
+        Limit,
+        Market,
+        MarketToLimit,
+        Iceberg,
+        StopLimit,
+        StopLoss
     }
 }

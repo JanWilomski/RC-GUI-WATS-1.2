@@ -43,7 +43,7 @@ namespace RC_GUI_WATS.Services
                         ProcessCapitalMessage(block.Payload);
                     }
                     else if (messageType == 'I' || messageType == 'W' || 
-                             messageType == 'D' || messageType == 'E')
+                             messageType == 'D' || messageType == 'E'||messageType == 'G'||messageType == 'S')
                     {
                         // Process log messages for potential limit information
                         if (block.Payload.Length >= 3)
@@ -96,70 +96,108 @@ namespace RC_GUI_WATS.Services
 
         private void TryExtractLimitsFromLog(string message)
         {
-            if ((message.Contains("%") || message.Contains("percent")) && message.Contains("of"))
+            // if ((message.Contains("%") || message.Contains("percent")) && message.Contains("of"))
+            // {
+            //     try
+            //     {
+            //         // Logic to extract percentage and limit values from log messages
+            //         // (Simplified from original code)
+            //         int percentIndex = message.IndexOf('%');
+            //         if (percentIndex < 0)
+            //         {
+            //             percentIndex = message.IndexOf("percent");
+            //             if (percentIndex < 0)
+            //                 return;
+            //         }
+            //
+            //         // Find the beginning of the number before %
+            //         int i = percentIndex - 1;
+            //         while (i >= 0 && (char.IsDigit(message[i]) || message[i] == '.'))
+            //             i--;
+            //
+            //         string percentText = message.Substring(i + 1, percentIndex - i - 1).Trim();
+            //         double percent = double.Parse(percentText);
+            //
+            //         // Find "of" and the number after it
+            //         int ofIndex = message.IndexOf("of", percentIndex);
+            //         if (ofIndex < 0)
+            //             return;
+            //
+            //         // Find start of number after "of"
+            //         i = ofIndex + 2;
+            //         while (i < message.Length && char.IsWhiteSpace(message[i]))
+            //             i++;
+            //
+            //         // Find end of number
+            //         int j = i;
+            //         while (j < message.Length && (char.IsDigit(message[j]) || message[j] == '.'))
+            //             j++;
+            //
+            //         string limitText = message.Substring(i, j - i).Trim();
+            //         double limit = double.Parse(limitText);
+            //
+            //         // Update limits on UI thread
+            //         _dispatcher.Invoke(() =>
+            //         {
+            //             // Determine if it's about messages or capital
+            //             if (message.Contains("message", StringComparison.OrdinalIgnoreCase) ||
+            //                 message.Contains("order", StringComparison.OrdinalIgnoreCase))
+            //             {
+            //                 _currentCapital.MessagesPercentage = percent;
+            //                 _currentCapital.MessagesLimit = limit;
+            //             }
+            //             else if (message.Contains("capital", StringComparison.OrdinalIgnoreCase) ||
+            //                      message.Contains("position", StringComparison.OrdinalIgnoreCase))
+            //             {
+            //                 _currentCapital.CapitalPercentage = percent;
+            //                 _currentCapital.CapitalLimit = limit;
+            //             }
+            //
+            //             CapitalUpdated?.Invoke();
+            //         });
+            //     }
+            //     catch
+            //     {
+            //         // Handle parsing errors
+            //     }
+            // }
+            
+            string[] parts = message.Split(',');
+            if (parts.Length != 3) return;
+
+            string scope = parts[0].Trim();            // np. "(ALL)"
+            string controlName = parts[1].Trim();      // np. "maxCapital"
+            string valueStr = parts[2].Trim();         // np. "5000"
+
+            // Interesuje nas tylko nazwa "maxCapital" i zakres "(ALL)"
+            if (scope.Equals("(ALL)", StringComparison.OrdinalIgnoreCase) &&
+                controlName.Equals("maxCapital", StringComparison.OrdinalIgnoreCase))
             {
-                try
+                if (double.TryParse(valueStr, out double newLimit))
                 {
-                    // Logic to extract percentage and limit values from log messages
-                    // (Simplified from original code)
-                    int percentIndex = message.IndexOf('%');
-                    if (percentIndex < 0)
-                    {
-                        percentIndex = message.IndexOf("percent");
-                        if (percentIndex < 0)
-                            return;
-                    }
+                    // Ustawiamy nowy limit kapitału
+                    _currentCapital.CapitalLimit = newLimit;
 
-                    // Find the beginning of the number before %
-                    int i = percentIndex - 1;
-                    while (i >= 0 && (char.IsDigit(message[i]) || message[i] == '.'))
-                        i--;
+                    // Jeśli już mamy TotalCapital, przeliczmy procent
+                    RecalculatePercentage();
 
-                    string percentText = message.Substring(i + 1, percentIndex - i - 1).Trim();
-                    double percent = double.Parse(percentText);
-
-                    // Find "of" and the number after it
-                    int ofIndex = message.IndexOf("of", percentIndex);
-                    if (ofIndex < 0)
-                        return;
-
-                    // Find start of number after "of"
-                    i = ofIndex + 2;
-                    while (i < message.Length && char.IsWhiteSpace(message[i]))
-                        i++;
-
-                    // Find end of number
-                    int j = i;
-                    while (j < message.Length && (char.IsDigit(message[j]) || message[j] == '.'))
-                        j++;
-
-                    string limitText = message.Substring(i, j - i).Trim();
-                    double limit = double.Parse(limitText);
-
-                    // Update limits on UI thread
-                    _dispatcher.Invoke(() =>
-                    {
-                        // Determine if it's about messages or capital
-                        if (message.Contains("message", StringComparison.OrdinalIgnoreCase) ||
-                            message.Contains("order", StringComparison.OrdinalIgnoreCase))
-                        {
-                            _currentCapital.MessagesPercentage = percent;
-                            _currentCapital.MessagesLimit = limit;
-                        }
-                        else if (message.Contains("capital", StringComparison.OrdinalIgnoreCase) ||
-                                 message.Contains("position", StringComparison.OrdinalIgnoreCase))
-                        {
-                            _currentCapital.CapitalPercentage = percent;
-                            _currentCapital.CapitalLimit = limit;
-                        }
-
-                        CapitalUpdated?.Invoke();
-                    });
+                    // Powiadom UI o zmianie
+                    CapitalUpdated?.Invoke();
                 }
-                catch
-                {
-                    // Handle parsing errors
-                }
+            }
+        }
+        private void RecalculatePercentage()
+        {
+            double limit = _currentCapital.CapitalLimit;
+            double total = _currentCapital.TotalCapital;
+
+            if (limit > 0)
+            {
+                _currentCapital.CapitalPercentage = Math.Round(total / limit * 100.0, 2);
+            }
+            else
+            {
+                _currentCapital.CapitalPercentage = 0;
             }
         }
     }

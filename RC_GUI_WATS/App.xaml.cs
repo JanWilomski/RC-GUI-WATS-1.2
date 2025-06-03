@@ -1,4 +1,4 @@
-﻿// App.xaml.cs
+﻿// App.xaml.cs - Updated version
 using System.Windows;
 using RC_GUI_WATS.Services;
 using RC_GUI_WATS.ViewModels;
@@ -27,6 +27,8 @@ namespace RC_GUI_WATS
 
             // Pass InstrumentsService to CcgMessagesService for instrument mapping
             var ccgMessagesService = new CcgMessagesService(clientService, instrumentsService);
+
+            // Create OrderBookService - depends on CcgMessagesService and InstrumentsService
             var orderBookService = new OrderBookService(ccgMessagesService, instrumentsService);
 
             // Create heartbeat monitor service
@@ -46,7 +48,7 @@ namespace RC_GUI_WATS
                 configService,
                 heartbeatMonitorService,
                 ccgMessagesService,
-                orderBookService,
+                orderBookService, // Add OrderBookService here
                 fileLoggingService);
 
             mainWindow.DataContext = mainViewModel;

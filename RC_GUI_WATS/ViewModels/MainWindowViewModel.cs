@@ -1,4 +1,4 @@
-﻿// ViewModels/MainWindowViewModel.cs
+﻿// ViewModels/MainWindowViewModel.cs - Updated version
 using System;
 using System.Threading.Tasks;
 using System.Windows;
@@ -79,8 +79,8 @@ namespace RC_GUI_WATS.ViewModels
             ConfigurationService configService,
             HeartbeatMonitorService heartbeatMonitorService,
             CcgMessagesService ccgMessagesService,
-            OrderBookService orderBookService,
-            FileLoggingService fileLoggingService) // Add FileLoggingService
+            OrderBookService orderBookService, // Add OrderBookService parameter
+            FileLoggingService fileLoggingService)
         {
             _clientService = clientService;
             _configService = configService;
@@ -91,7 +91,7 @@ namespace RC_GUI_WATS.ViewModels
             _serverIp = _configService.ServerIP;
             _serverPort = _configService.ServerPort.ToString();
             
-            // Initialize tab ViewModels - pass FileLoggingService to SettingsTab
+            // Initialize tab ViewModels - pass OrderBookService to MessagesTab
             MessagesTab = new MessagesTabViewModel(clientService, positionsService, capitalService, heartbeatMonitorService, ccgMessagesService, orderBookService);
             SettingsTab = new SettingsTabViewModel(clientService, limitsService, configService, fileLoggingService, _serverIp, _serverPort);
             FiltersTab = new FiltersTabViewModel();
