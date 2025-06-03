@@ -28,10 +28,17 @@ namespace RC_GUI_WATS.Services
             _currentCapital.MessagesLimit = 0;
             _currentCapital.CapitalPercentage = 0;
             _currentCapital.CapitalLimit = 0;
+            _currentCapital.CurrentMessages = 0;
         }
 
         private void ProcessMessage(RcMessage message)
         {
+            // Liczy wszystkie otrzymane wiadomości RC (nie tylko CCG)
+            if (message.Header.SequenceNumber > 0) // Only business messages have sequence numbers > 0
+            {
+                IncrementMessageCount();
+            }
+
             foreach (var block in message.Blocks)
             {
                 if (block.Payload.Length > 0)
@@ -84,6 +91,9 @@ namespace RC_GUI_WATS.Services
                         _currentCapital.AccruedCapital = accruedCapital;
                         _currentCapital.TotalCapital = totalCapital;
                         
+                        // Recalculate percentage when total capital changes
+                        RecalculateCapitalPercentage();
+                        
                         CapitalUpdated?.Invoke();
                     });
                 }
@@ -96,97 +106,91 @@ namespace RC_GUI_WATS.Services
 
         private void TryExtractLimitsFromLog(string message)
         {
-            // if ((message.Contains("%") || message.Contains("percent")) && message.Contains("of"))
-            // {
-            //     try
-            //     {
-            //         // Logic to extract percentage and limit values from log messages
-            //         // (Simplified from original code)
-            //         int percentIndex = message.IndexOf('%');
-            //         if (percentIndex < 0)
-            //         {
-            //             percentIndex = message.IndexOf("percent");
-            //             if (percentIndex < 0)
-            //                 return;
-            //         }
-            //
-            //         // Find the beginning of the number before %
-            //         int i = percentIndex - 1;
-            //         while (i >= 0 && (char.IsDigit(message[i]) || message[i] == '.'))
-            //             i--;
-            //
-            //         string percentText = message.Substring(i + 1, percentIndex - i - 1).Trim();
-            //         double percent = double.Parse(percentText);
-            //
-            //         // Find "of" and the number after it
-            //         int ofIndex = message.IndexOf("of", percentIndex);
-            //         if (ofIndex < 0)
-            //             return;
-            //
-            //         // Find start of number after "of"
-            //         i = ofIndex + 2;
-            //         while (i < message.Length && char.IsWhiteSpace(message[i]))
-            //             i++;
-            //
-            //         // Find end of number
-            //         int j = i;
-            //         while (j < message.Length && (char.IsDigit(message[j]) || message[j] == '.'))
-            //             j++;
-            //
-            //         string limitText = message.Substring(i, j - i).Trim();
-            //         double limit = double.Parse(limitText);
-            //
-            //         // Update limits on UI thread
-            //         _dispatcher.Invoke(() =>
-            //         {
-            //             // Determine if it's about messages or capital
-            //             if (message.Contains("message", StringComparison.OrdinalIgnoreCase) ||
-            //                 message.Contains("order", StringComparison.OrdinalIgnoreCase))
-            //             {
-            //                 _currentCapital.MessagesPercentage = percent;
-            //                 _currentCapital.MessagesLimit = limit;
-            //             }
-            //             else if (message.Contains("capital", StringComparison.OrdinalIgnoreCase) ||
-            //                      message.Contains("position", StringComparison.OrdinalIgnoreCase))
-            //             {
-            //                 _currentCapital.CapitalPercentage = percent;
-            //                 _currentCapital.CapitalLimit = limit;
-            //             }
-            //
-            //             CapitalUpdated?.Invoke();
-            //         });
-            //     }
-            //     catch
-            //     {
-            //         // Handle parsing errors
-            //     }
-            // }
+            Console.WriteLine($"Processing message: '{message}'");
             
             string[] parts = message.Split(',');
-            if (parts.Length != 3) return;
+            if (parts.Length != 3) 
+            {
+                Console.WriteLine($"Message has {parts.Length} parts, expected 3");
+                return;
+            }
 
             string scope = parts[0].Trim();            // np. "(ALL)"
-            string controlName = parts[1].Trim();      // np. "maxCapital"
-            string valueStr = parts[2].Trim();         // np. "5000"
+            string controlName = parts[1].Trim();      // np. "maxCapital" lub "maxMessageCount"
+            string valueStr = parts[2].Trim();         // np. "1100000." lub "115200"
 
-            // Interesuje nas tylko nazwa "maxCapital" i zakres "(ALL)"
-            if (scope.Equals("(ALL)", StringComparison.OrdinalIgnoreCase) &&
-                controlName.Equals("maxCapital", StringComparison.OrdinalIgnoreCase))
+            Console.WriteLine($"Parsed - Scope: '{scope}', Control: '{controlName}', Value: '{valueStr}'");
+
+            // Usuń dodatkowe znaki z końca wartości (kropki, spacje, itp.)
+            valueStr = CleanValueString(valueStr);
+            Console.WriteLine($"Cleaned value: '{valueStr}'");
+
+            // Sprawdź czy to limit dla wszystkich instrumentów
+            if (!scope.Equals("(ALL)", StringComparison.OrdinalIgnoreCase))
             {
-                if (double.TryParse(valueStr, out double newLimit))
-                {
-                    // Ustawiamy nowy limit kapitału
-                    _currentCapital.CapitalLimit = newLimit;
-
-                    // Jeśli już mamy TotalCapital, przeliczmy procent
-                    RecalculatePercentage();
-
-                    // Powiadom UI o zmianie
-                    CapitalUpdated?.Invoke();
-                }
+                Console.WriteLine($"Scope '{scope}' is not (ALL), skipping");
+                return;
             }
+
+            _dispatcher.Invoke(() =>
+            {
+                if (controlName.Equals("maxCapital", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (double.TryParse(valueStr, out double newCapitalLimit))
+                    {
+                        Console.WriteLine($"Setting Capital Limit from {_currentCapital.CapitalLimit} to {newCapitalLimit}");
+                        _currentCapital.CapitalLimit = newCapitalLimit;
+                        RecalculateCapitalPercentage();
+                        CapitalUpdated?.Invoke();
+                        
+                        Console.WriteLine($"Updated Capital Limit: {newCapitalLimit}, Percentage: {_currentCapital.CapitalPercentage}%");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Failed to parse capital limit: '{valueStr}'");
+                    }
+                }
+                else if (controlName.Equals("maxMessageCount", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (double.TryParse(valueStr, out double newMessagesLimit))
+                    {
+                        Console.WriteLine($"Setting Messages Limit from {_currentCapital.MessagesLimit} to {newMessagesLimit}");
+                        _currentCapital.MessagesLimit = newMessagesLimit;
+                        RecalculateMessagesPercentage();
+                        CapitalUpdated?.Invoke();
+                        
+                        Console.WriteLine($"Updated Messages Limit: {newMessagesLimit}, Percentage: {_currentCapital.MessagesPercentage}%");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Failed to parse messages limit: '{valueStr}'");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"Unknown control name: '{controlName}'");
+                }
+            });
         }
-        private void RecalculatePercentage()
+
+        private string CleanValueString(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+                return value;
+
+            // Usuń białe znaki z początku i końca
+            value = value.Trim();
+
+            // Usuń dodatkowe znaki z końca (kropki, średniki, etc.)
+            while (value.Length > 0 && !char.IsDigit(value[value.Length - 1]))
+            {
+                value = value.Substring(0, value.Length - 1);
+            }
+
+            return value;
+        }
+
+        private void RecalculateCapitalPercentage()
         {
             double limit = _currentCapital.CapitalLimit;
             double total = _currentCapital.TotalCapital;
@@ -199,6 +203,55 @@ namespace RC_GUI_WATS.Services
             {
                 _currentCapital.CapitalPercentage = 0;
             }
+        }
+
+        private void RecalculateMessagesPercentage()
+        {
+            double limit = _currentCapital.MessagesLimit;
+            double current = _currentCapital.CurrentMessages;
+
+            if (limit > 0)
+            {
+                _currentCapital.MessagesPercentage = Math.Round(current / limit * 100.0, 2);
+            }
+            else
+            {
+                _currentCapital.MessagesPercentage = 0;
+            }
+        }
+
+        // Metoda do aktualizacji aktualnej liczby wiadomości
+        public void UpdateCurrentMessages(double currentMessages)
+        {
+            _dispatcher.Invoke(() =>
+            {
+                _currentCapital.CurrentMessages = currentMessages;
+                RecalculateMessagesPercentage();
+                CapitalUpdated?.Invoke();
+            });
+        }
+
+        // Metoda do inkrementacji liczby wiadomości
+        public void IncrementMessageCount()
+        {
+            _dispatcher.Invoke(() =>
+            {
+                _currentCapital.CurrentMessages++;
+                RecalculateMessagesPercentage();
+                CapitalUpdated?.Invoke();
+            });
+        }
+
+        // Metoda do resetowania liczników (np. przy rozłączeniu)
+        public void ResetCounters()
+        {
+            _dispatcher.Invoke(() =>
+            {
+                _currentCapital.CurrentMessages = 0;
+                _currentCapital.MessagesPercentage = 0;
+                _currentCapital.CapitalPercentage = 0;
+                CapitalUpdated?.Invoke();
+            });
         }
     }
 }

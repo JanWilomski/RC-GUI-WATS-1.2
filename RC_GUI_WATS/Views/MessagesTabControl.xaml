@@ -1,4 +1,4 @@
-<!-- Views/MessagesTabControl.xaml - Poprawiona wersja -->
+<!-- Views/MessagesTabControl.xaml - Poprawiona wersja z lepszym wyświetlaniem limitów -->
 <UserControl x:Class="RC_GUI_WATS.Views.MessagesTabControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -38,6 +38,7 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
@@ -56,10 +57,10 @@
                     <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding AccruedCapitalText}" HorizontalAlignment="Right"/>
                     
                     <!-- Total Capital -->
-                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Total Capital:" Margin="0,0,10,0"/>
-                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding TotalCapitalText}" HorizontalAlignment="Right"/>
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Total Capital:" Margin="0,0,10,0" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding TotalCapitalText}" HorizontalAlignment="Right" FontWeight="SemiBold"/>
                     
-                    <!-- Limits -->
+                    <!-- Limits Header -->
                     <TextBlock Grid.Row="4" Grid.ColumnSpan="2" Text="Limits" FontWeight="Bold" Margin="0,10,0,5"/>
                     
                     <!-- Messages -->
@@ -67,17 +68,22 @@
                     <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
                         <TextBlock Text="{Binding MessagesPercentageText}" Foreground="{Binding MessagesPercentageBrush}"/>
                         <TextBlock Text=" of "/>
-                        <TextBlock Text="{Binding CurrentCapital.MessagesLimit}"/>
+                        <TextBlock Text="{Binding CurrentCapital.MessagesLimit, StringFormat=N0}"/>
                     </StackPanel>
                     
                     <!-- Capital -->
                     <TextBlock Grid.Row="6" Grid.Column="0" Text="Capital:" Margin="0,0,10,0"/>
                     <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
-                        <TextBlock Text="{Binding CurrentCapital.CapitalPercentage, StringFormat={}{0}%}" 
+                        <TextBlock Text="{Binding CurrentCapital.CapitalPercentage, StringFormat={}{0:F1}%}" 
                                   Foreground="{Binding CapitalPercentageBrush}"/>
                         <TextBlock Text=" of "/>
-                        <TextBlock Text="{Binding CurrentCapital.CapitalLimit}"/>
+                        <TextBlock Text="{Binding CurrentCapital.CapitalLimit, StringFormat=N0}"/>
                     </StackPanel>
+                    
+                    <!-- RC Messages Counter -->
+                    <TextBlock Grid.Row="7" Grid.Column="0" Text="RC Messages:" Margin="0,5,10,0" FontSize="10" Foreground="Gray"/>
+                    <TextBlock Grid.Row="7" Grid.Column="1" Text="{Binding CurrentCapital.CurrentMessages, StringFormat=N0}" 
+                               HorizontalAlignment="Right" FontSize="10" Foreground="Gray" FontFamily="Consolas"/>
                 </Grid>
             </Border>
             

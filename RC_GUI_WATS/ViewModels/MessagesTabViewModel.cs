@@ -55,6 +55,13 @@ namespace RC_GUI_WATS.ViewModels
             set => SetProperty(ref _messagesPercentageText, value);
         }
 
+        private string _currentMessagesText;
+        public string CurrentMessagesText
+        {
+            get => _currentMessagesText;
+            set => SetProperty(ref _currentMessagesText, value);
+        }
+
         private Brush _messagesPercentageBrush;
         public Brush MessagesPercentageBrush
         {
@@ -222,6 +229,9 @@ namespace RC_GUI_WATS.ViewModels
             _orderBookService.OrderUpdated += OnOrderUpdated;
             _orderBookService.OrderBookCleared += OnOrderBookCleared;
 
+            // Subscribe to connection status to reset counters
+            _clientService.ConnectionStatusChanged += OnConnectionStatusChanged;
+
             // Initialize commands
             AllSwitchCommand = new RelayCommand(AllSwitchButtonClick);
             ClearCcgMessagesCommand = new RelayCommand(() => _ccgMessagesService.ClearMessages());
@@ -235,15 +245,33 @@ namespace RC_GUI_WATS.ViewModels
             UpdateOrderBookStatistics();
         }
 
+        private void OnConnectionStatusChanged(bool isConnected)
+        {
+            if (!isConnected)
+            {
+                // Reset counters when disconnected
+                _capitalService.ResetCounters();
+            }
+        }
+
         public void UpdateCapitalDisplay()
         {
             OpenCapitalText = CurrentCapital.OpenCapital.ToString("0.00");
             AccruedCapitalText = CurrentCapital.AccruedCapital.ToString("0.00");
             TotalCapitalText = CurrentCapital.TotalCapital.ToString("0.00");
 
-            MessagesPercentageText = $"{CurrentCapital.MessagesPercentage}%";
+            // Updated messages display with current count and limit
+            CurrentMessagesText = CurrentCapital.CurrentMessages.ToString("0");
+            if (CurrentCapital.MessagesLimit > 0)
+            {
+                MessagesPercentageText = $"{CurrentCapital.MessagesPercentage:F1}%";
+            }
+            else
+            {
+                MessagesPercentageText = "N/A";
+            }
+            
             MessagesPercentageBrush = GetBrushForPercentage(CurrentCapital.MessagesPercentage);
-
             CapitalPercentageBrush = GetBrushForPercentage(CurrentCapital.CapitalPercentage);
         }
 

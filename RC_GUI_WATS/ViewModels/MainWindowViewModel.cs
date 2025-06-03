@@ -1,4 +1,4 @@
-﻿// ViewModels/MainWindowViewModel.cs - Updated version
+﻿// ViewModels/MainWindowViewModel.cs - Updated version with capital service reset
 using System;
 using System.Threading.Tasks;
 using System.Windows;
@@ -10,6 +10,7 @@ namespace RC_GUI_WATS.ViewModels
     public class MainWindowViewModel : BaseViewModel
     {
         private readonly RcTcpClientService _clientService;
+        private readonly CapitalService _capitalService;
         private readonly ConfigurationService _configService;
         private readonly HeartbeatMonitorService _heartbeatMonitorService;
         private readonly FileLoggingService _fileLoggingService;
@@ -83,6 +84,7 @@ namespace RC_GUI_WATS.ViewModels
             FileLoggingService fileLoggingService)
         {
             _clientService = clientService;
+            _capitalService = capitalService;
             _configService = configService;
             _heartbeatMonitorService = heartbeatMonitorService;
             _fileLoggingService = fileLoggingService;
@@ -138,6 +140,10 @@ namespace RC_GUI_WATS.ViewModels
             {
                 StatusBarText = "Rozłączony";
                 IsLoadingHistoricalData = false;
+                
+                // Reset capital service counters when disconnected
+                _capitalService.ResetCounters();
+                
                 _fileLoggingService.LogConnection("Disconnected");
             }
         }
