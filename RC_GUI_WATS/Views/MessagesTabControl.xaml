@@ -1,4 +1,4 @@
-<!-- Views/MessagesTabControl.xaml -->
+<!-- Views/MessagesTabControl.xaml - Poprawiona wersja -->
 <UserControl x:Class="RC_GUI_WATS.Views.MessagesTabControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -87,6 +87,8 @@
                     <TextBlock Text="CCG Messages" FontWeight="Bold" Margin="0,0,0,5"/>
                     <TextBlock Text="{Binding CcgMessageCountText}" FontSize="11"/>
                     <TextBlock Text="{Binding CcgStatisticsText}" FontSize="11" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                    <TextBlock Text="{Binding InstrumentMappingText}" FontSize="10" TextWrapping="Wrap" 
+                               Margin="0,5,0,0" Foreground="DarkGray"/>
                     
                     <!-- CCG Actions -->
                     <Button Content="Clear CCG" Command="{Binding ClearCcgMessagesCommand}" 
@@ -104,15 +106,46 @@
         <!-- Positions DataGrid -->
         <DataGrid Grid.Row="1" AutoGenerateColumns="False" 
                   ItemsSource="{Binding Positions}"
-                  CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True" Margin="5">
+                  CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True" 
+                  Margin="5" LoadingRow="PositionsDataGrid_LoadingRow">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="#" Binding="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type DataGridRow}}, Path=Header}" Width="30"/>
+                <DataGridTextColumn Header="#" Width="30">
+                    <DataGridTextColumn.Binding>
+                        <Binding RelativeSource="{RelativeSource FindAncestor, AncestorType={x:Type DataGridRow}}" 
+                                Path="Header"/>
+                    </DataGridTextColumn.Binding>
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                            <Setter Property="FontSize" Value="10"/>
+                            <Setter Property="Foreground" Value="Gray"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
                 <DataGridTextColumn Header="ISIN" Binding="{Binding ISIN}" Width="120"/>
                 <DataGridTextColumn Header="Ticker" Binding="{Binding Ticker}" Width="80"/>
                 <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
-                <DataGridTextColumn Header="Net" Binding="{Binding Net}" Width="60"/>
-                <DataGridTextColumn Header="OpenLong" Binding="{Binding OpenLong}" Width="80"/>
-                <DataGridTextColumn Header="OpenShort" Binding="{Binding OpenShort}" Width="80"/>
+                <DataGridTextColumn Header="Net" Binding="{Binding Net}" Width="60">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="OpenLong" Binding="{Binding OpenLong}" Width="80">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="OpenShort" Binding="{Binding OpenShort}" Width="80">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
             </DataGrid.Columns>
         </DataGrid>
         
@@ -120,17 +153,13 @@
         <GridSplitter Grid.Row="2" Height="5" HorizontalAlignment="Stretch" 
                       Background="LightGray" ResizeDirection="Rows"/>
         
-        
-        <!-- CCG Messages Section -->
+        <!-- CCG Messages and Order Book Section -->
         <Grid Grid.Row="3" Margin="5">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="200"/>
                 <RowDefinition Height="5"/>
-                <RowDefinition Height="200"/> <!-- CCG Messages height -->
-                <RowDefinition Height="5"/> <!-- New splitter -->
-                <RowDefinition Height="*"/> <!-- Order Book -->
-                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
             
             <!-- CCG Messages Header and Filters -->
@@ -171,11 +200,6 @@
                       FontSize="10" RowHeight="20"
                       MouseDoubleClick="CcgDataGrid_MouseDoubleClick"
                       LoadingRow="CcgDataGrid_LoadingRow">
-                <DataGrid.InputBindings>
-                    <MouseBinding Gesture="LeftDoubleClick" 
-                                  Command="{Binding ShowCcgMessageDetailsCommand}"
-                                  CommandParameter="{Binding SelectedItem, RelativeSource={RelativeSource AncestorType=DataGrid}}"/>
-                </DataGrid.InputBindings>
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Header" Binding="{Binding Header}" Width="50">
                         <DataGridTextColumn.ElementStyle>
@@ -231,8 +255,11 @@
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
                     <DataGridTextColumn Header="InstrumentId" Binding="{Binding InstrumentIdDisplay}" Width="80"/>
-                    <DataGridTextColumn Header="ClientOrderId" Binding="{Binding ClientOrderId}" Width="150"/>
-                    <DataGridTextColumn Header="Raw Data" Binding="{Binding RawDataShort}" Width="200" Visibility="{Binding IsChecked, ElementName=ShowRawDataCheckBox, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                    <DataGridTextColumn Header="ISIN" Binding="{Binding ISINDisplay}" Width="100"/>
+                    <DataGridTextColumn Header="Product" Binding="{Binding ProductCodeDisplay}" Width="70"/>
+                    <DataGridTextColumn Header="ClientOrderId" Binding="{Binding ClientOrderId}" Width="120"/>
+                    <DataGridTextColumn Header="Raw Data" Binding="{Binding RawDataShort}" Width="200" 
+                                       Visibility="{Binding IsChecked, ElementName=ShowRawDataCheckBox, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                 </DataGrid.Columns>
                 
                 <!-- Row styling based on message type -->
@@ -267,7 +294,6 @@
                             <!-- OrderAdd - bright green -->
                             <DataTrigger Binding="{Binding Name}" Value="OrderAdd">
                                 <Setter Property="Background" Value="LawnGreen"/>
-                                <!-- <Setter Property="FontWeight" Value="SemiBold"/> -->
                             </DataTrigger>
                             
                             <!-- OrderAddResponse - light green -->
@@ -330,11 +356,13 @@
                     </Style>
                 </DataGrid.RowStyle>
             </DataGrid>
-            <GridSplitter Grid.Row="4" Height="5" HorizontalAlignment="Stretch" 
-              Background="LightGray" ResizeDirection="Rows"/>
+            
+            <!-- Splitter between CCG Messages and Order Book -->
+            <GridSplitter Grid.Row="2" Height="5" HorizontalAlignment="Stretch" 
+                          Background="LightGray" ResizeDirection="Rows"/>
 
             <!-- Order Book Section -->
-            <Grid Grid.Row="5" Margin="5">
+            <Grid Grid.Row="3" Margin="0,5,0,0">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
@@ -352,12 +380,10 @@
                     <TextBlock Grid.Column="0" Text="Order Book" FontWeight="Bold" 
                                VerticalAlignment="Center" Margin="0,0,15,0"/>
                     
-                    <TextBlock Grid.Column="1" Text="{Binding OrderStatisticsText}" 
+                    <TextBlock Grid.Column="1" Text="{Binding OrderBookStatisticsText}" 
                                VerticalAlignment="Center" FontSize="11" Foreground="DarkBlue"/>
                     
                     <StackPanel Grid.Column="3" Orientation="Horizontal">
-                        <Button Content="Rebuild" Command="{Binding RebuildOrderBookCommand}" 
-                                Padding="5,2" Margin="0,0,5,0" FontSize="10"/>
                         <Button Content="Clear" Command="{Binding ClearOrderBookCommand}" 
                                 Padding="5,2" FontSize="10"/>
                     </StackPanel>
@@ -367,8 +393,23 @@
                 <DataGrid Grid.Row="1" AutoGenerateColumns="False" 
                           ItemsSource="{Binding OrderBook}"
                           CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True"
-                          GridLinesVisibility="All" FontSize="10" RowHeight="20">
+                          GridLinesVisibility="All" FontSize="10" RowHeight="20"
+                          LoadingRow="OrderBookDataGrid_LoadingRow">
                     <DataGrid.Columns>
+                        <DataGridTextColumn Header="#" Width="30">
+                            <DataGridTextColumn.Binding>
+                                <Binding RelativeSource="{RelativeSource FindAncestor, AncestorType={x:Type DataGridRow}}" 
+                                        Path="Header"/>
+                            </DataGridTextColumn.Binding>
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                    <Setter Property="FontSize" Value="9"/>
+                                    <Setter Property="Foreground" Value="Gray"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        
                         <DataGridTextColumn Header="OrderId" Binding="{Binding OrderId}" Width="80">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
@@ -445,24 +486,10 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
                         
-                        <DataGridTextColumn Header="Filled" Binding="{Binding FilledDisplay}" Width="80">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="HorizontalAlignment" Value="Center"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-                        
-                        <DataGridTextColumn Header="Fill%" Binding="{Binding FillPercentage}" Width="50">
+                        <DataGridTextColumn Header="Filled" Binding="{Binding FilledQuantity}" Width="60">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="HorizontalAlignment" Value="Right"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding Status}" Value="Filled">
-                                            <Setter Property="Foreground" Value="Green"/>
-                                            <Setter Property="FontWeight" Value="Bold"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
@@ -510,9 +537,9 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
                         
-                        <DataGridTextColumn Header="ClientOrderId" Binding="{Binding ClientOrderId}" Width="150"/>
+                        <DataGridTextColumn Header="ClientOrderId" Binding="{Binding ClientOrderId}" Width="120"/>
                         
-                        <DataGridTextColumn Header="Last Update" Binding="{Binding LastUpdateTime, StringFormat=HH:mm:ss.fff}" Width="75"/>
+                        <DataGridTextColumn Header="Last Update" Binding="{Binding LastModifiedTime, StringFormat=HH:mm:ss.fff}" Width="75"/>
                     </DataGrid.Columns>
                     
                     <!-- Row styling -->
@@ -553,31 +580,12 @@
                             </Style.Triggers>
                         </Style>
                     </DataGrid.RowStyle>
-                    
-                    <!-- Row details template to show order events -->
-                    <DataGrid.RowDetailsTemplate>
-                        <DataTemplate>
-                            <Border Background="#F5F5F5" BorderBrush="Gray" BorderThickness="1" Margin="5" Padding="5">
-                                <DataGrid ItemsSource="{Binding Events}" AutoGenerateColumns="False" 
-                                          CanUserAddRows="False" IsReadOnly="True" FontSize="9">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Header="Time" Binding="{Binding Timestamp, StringFormat=HH:mm:ss.fff}" Width="70"/>
-                                        <DataGridTextColumn Header="Event" Binding="{Binding EventType}" Width="60"/>
-                                        <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*"/>
-                                        <DataGridTextColumn Header="Old" Binding="{Binding OldValue}" Width="100"/>
-                                        <DataGridTextColumn Header="New" Binding="{Binding NewValue}" Width="100"/>
-                                        <DataGridTextColumn Header="SeqNum" Binding="{Binding SequenceNumber}" Width="60"/>
-                                    </DataGrid.Columns>
-                                </DataGrid>
-                            </Border>
-                        </DataTemplate>
-                    </DataGrid.RowDetailsTemplate>
                 </DataGrid>
             </Grid>
         </Grid>
         
         <!-- Buttons panel -->
-        <StackPanel Grid.Row="" Orientation="Horizontal" HorizontalAlignment="Left" Margin="5">
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Left" Margin="5">
             <Button Content="Kill switch" Background="Red" Foreground="White" 
                     Command="{Binding AllSwitchCommand}"
                     Padding="10,2" Margin="0,0,5,0"/>
