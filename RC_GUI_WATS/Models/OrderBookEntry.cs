@@ -1,4 +1,4 @@
-﻿// Models/OrderBookEntry.cs - Enhanced version with better modification support and UI notifications
+﻿// Models/OrderBookEntry.cs - Enhanced version with proper ClientOrderId support
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -13,7 +13,21 @@ namespace RC_GUI_WATS.Models
         // Identifiers
         public ulong OrderId { get; set; }
         public ulong? PublicOrderId { get; set; }
-        public string ClientOrderId { get; set; } = "";
+        
+        // Separate OrderId reference (from CCG messages) and ClientOrderId (from OrderAdd)
+        private string _orderIdReference = ""; // OrderId from CCG messages as string
+        public string OrderIdReference
+        {
+            get => _orderIdReference;
+            set => SetProperty(ref _orderIdReference, value);
+        }
+        
+        private string _clientOrderId = ""; // Actual ClientOrderId from OrderAdd message
+        public string ClientOrderId
+        {
+            get => _clientOrderId;
+            set => SetProperty(ref _clientOrderId, value);
+        }
         
         // Instrument info
         public uint? InstrumentId { get; set; }
@@ -80,6 +94,9 @@ namespace RC_GUI_WATS.Models
         public int ModificationCount => Modifications.Count;
         public string InstrumentDisplay => !string.IsNullOrEmpty(ProductCode) ? ProductCode : InstrumentId?.ToString() ?? "";
         
+        // ClientOrderId display - shows actual ClientOrderId or falls back to OrderId
+        public string ClientOrderIdDisplay => !string.IsNullOrEmpty(ClientOrderId) ? ClientOrderId : OrderId.ToString();
+        
         // Advanced modification info
         public string ModificationsDisplay => GetModificationsDisplay();
         public string LastModificationDisplay => GetLastModificationDisplay();
@@ -96,6 +113,17 @@ namespace RC_GUI_WATS.Models
         // Trade info
         public decimal? AveragePrice => GetAveragePrice();
         public string TradesDisplay => GetTradesDisplay();
+
+        // Helper method for property change notifications
+        protected bool SetProperty<T>(ref T storage, T value, [System.Runtime.CompilerServices.CallerMemberName] string propertyName = null)
+        {
+            if (Equals(storage, value))
+                return false;
+
+            storage = value;
+            OnPropertyChanged(propertyName);
+            return true;
+        }
 
         // Methods to notify about collection changes
         public void AddModification(OrderModification modification)
@@ -169,6 +197,7 @@ namespace RC_GUI_WATS.Models
             OnPropertyChanged(nameof(QuantityInfo));
             OnPropertyChanged(nameof(LastModifiedTimeDisplay));
             OnPropertyChanged(nameof(InstrumentDisplay));
+            OnPropertyChanged(nameof(ClientOrderIdDisplay));
         }
         
         private string GetStatusDisplay()

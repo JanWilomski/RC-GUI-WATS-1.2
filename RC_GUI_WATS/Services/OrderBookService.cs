@@ -1,9 +1,10 @@
-﻿// Services/OrderBookService.cs - Enhanced version with proper UI notifications for modifications
+﻿// Services/OrderBookService.cs - Enhanced version with proper ClientOrderId handling
 using System;
 using System.Collections.ObjectModel;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
+using System.Text;
 using RC_GUI_WATS.Models;
 
 namespace RC_GUI_WATS.Services
@@ -13,6 +14,7 @@ namespace RC_GUI_WATS.Services
         private readonly CcgMessagesService _ccgMessagesService;
         private readonly InstrumentsService _instrumentsService;
         private readonly Dictionary<ulong, OrderBookEntry> _orderBook = new Dictionary<ulong, OrderBookEntry>();
+        private readonly Dictionary<string, OrderBookEntry> _ordersByClientOrderId = new Dictionary<string, OrderBookEntry>(); // Track by ClientOrderId too
         private readonly ObservableCollection<OrderBookEntry> _orders = new ObservableCollection<OrderBookEntry>();
         private const int MAX_ORDERS = 500; // Limit to prevent memory issues
 
@@ -55,6 +57,7 @@ namespace RC_GUI_WATS.Services
             Application.Current?.Dispatcher.Invoke(() =>
             {
                 _orderBook.Clear();
+                _ordersByClientOrderId.Clear();
                 _orders.Clear();
                 OrderBookCleared?.Invoke();
             });
@@ -103,10 +106,49 @@ namespace RC_GUI_WATS.Services
 
         private void ProcessOrderAdd(CcgMessage message)
         {
-            // We'll get the orderId from OrderAddResponse, but we can store some initial data
-            // from the original OrderAdd request for reference
-            System.Diagnostics.Debug.WriteLine($"OrderAdd received: ClientOrderId={message.ClientOrderId}, InstrumentId={message.InstrumentId}, Side={message.Side}, Price={message.Price}, Qty={message.Quantity}");
+            // Extract ClientOrderId from OrderAdd message if available
+            if (message.RawData != null && message.RawData.Length >= 167)
+            {
+                try
+                {
+                    // ClientOrderId is at offset 147, 20 bytes (according to GPW WATS spec)
+                    var clientOrderIdBytes = new byte[20];
+                    Array.Copy(message.RawData, 147, clientOrderIdBytes, 0, 20);
+                    string clientOrderId = Encoding.ASCII.GetString(clientOrderIdBytes).TrimEnd('\0', ' ');
+                    
+                    // Store the pending OrderAdd with its ClientOrderId for later matching
+                    var pendingOrder = new PendingOrderAdd
+                    {
+                        ClientOrderId = clientOrderId,
+                        Message = message,
+                        ReceivedTime = message.DateReceived
+                    };
+                    
+                    // Store it temporarily - we'll match it when OrderAddResponse arrives
+                    _pendingOrderAdds.Add(pendingOrder);
+                    
+                    // Clean up old pending orders (older than 30 seconds)
+                    var cutoffTime = DateTime.Now.AddSeconds(-30);
+                    _pendingOrderAdds.RemoveAll(p => p.ReceivedTime < cutoffTime);
+                    
+                    System.Diagnostics.Debug.WriteLine($"OrderAdd received: ClientOrderId='{clientOrderId}', InstrumentId={message.InstrumentId}, Side={message.Side}, Price={message.Price}, Qty={message.Quantity}");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error parsing OrderAdd ClientOrderId: {ex.Message}");
+                }
+            }
         }
+
+        // Helper class for tracking pending OrderAdd messages
+        private class PendingOrderAdd
+        {
+            public string ClientOrderId { get; set; }
+            public CcgMessage Message { get; set; }
+            public DateTime ReceivedTime { get; set; }
+        }
+        
+        private readonly List<PendingOrderAdd> _pendingOrderAdds = new List<PendingOrderAdd>();
 
         private void ProcessOrderAddResponse(CcgMessage message)
         {
@@ -135,15 +177,18 @@ namespace RC_GUI_WATS.Services
                         entry.FilledQuantity = filled;
                         entry.Status = GetOrderStatusName(status);
                         entry.LastExecTypeReason = GetExecTypeReasonName(execTypeReason);
+                        entry.OrderIdReference = orderId.ToString(); // Store the OrderId reference
                         
-                        // For new orders, try to get more info from the original OrderAdd
-                        if (entry.OriginalQuantity == 0)
+                        // Try to find corresponding OrderAdd message and populate details
+                        var orderAddMessage = FindCorrespondingOrderAdd(entry, message);
+                        if (orderAddMessage != null)
                         {
-                            // Try to find corresponding OrderAdd message to get full order details
-                            var orderAddMessage = FindCorrespondingOrderAdd(message);
-                            if (orderAddMessage != null)
+                            PopulateOrderDetailsFromOrderAdd(entry, orderAddMessage);
+                            
+                            // Add to ClientOrderId lookup if we have one
+                            if (!string.IsNullOrEmpty(entry.ClientOrderId))
                             {
-                                PopulateOrderDetailsFromOrderAdd(entry, orderAddMessage);
+                                _ordersByClientOrderId[entry.ClientOrderId] = entry;
                             }
                         }
                         
@@ -169,120 +214,110 @@ namespace RC_GUI_WATS.Services
 
         private void ProcessOrderModify(CcgMessage message)
         {
-            if (!ulong.TryParse(message.ClientOrderId, out ulong orderId))
-                return;
+            var entry = FindOrderEntry(message.ClientOrderId);
+            if (entry == null) return;
 
             Application.Current?.Dispatcher.Invoke(() =>
             {
-                if (_orderBook.TryGetValue(orderId, out var entry))
+                // Parse OrderModify message to get modification details
+                var modifyDetails = ParseOrderModifyDetails(message);
+                
+                var modification = new OrderModification
                 {
-                    // Parse OrderModify message to get modification details
-                    var modifyDetails = ParseOrderModifyDetails(message);
-                    
-                    var modification = new OrderModification
-                    {
-                        ModificationTime = message.DateReceived,
-                        ModificationType = "Modify Request",
-                        Status = "Pending",
-                        ModificationDetails = modifyDetails
-                    };
-                    
-                    // Store old values for comparison
-                    if (modifyDetails.ContainsKey("price"))
-                    {
-                        modification.OldValue = entry.Price?.ToString("F4") ?? "";
-                        modification.NewValue = modifyDetails["price"];
-                        modification.FieldModified = "Price";
-                    }
-                    else if (modifyDetails.ContainsKey("quantity"))
-                    {
-                        modification.OldValue = entry.OriginalQuantity.ToString();
-                        modification.NewValue = modifyDetails["quantity"];
-                        modification.FieldModified = "Quantity";
-                    }
-                    else if (modifyDetails.ContainsKey("displayQty"))
-                    {
-                        modification.OldValue = entry.DisplayQuantity?.ToString() ?? "";
-                        modification.NewValue = modifyDetails["displayQty"];
-                        modification.FieldModified = "DisplayQty";
-                    }
-                    else
-                    {
-                        modification.FieldModified = "Multiple";
-                        modification.OldValue = "Various";
-                        modification.NewValue = "Various";
-                    }
-                    
-                    // Use new method to add modification and notify UI
-                    entry.AddModification(modification);
-                    entry.LastModifiedTime = message.DateReceived;
-                    entry.UpdateBasicProperties();
-                    OrderUpdated?.Invoke(entry);
-                    
-                    System.Diagnostics.Debug.WriteLine($"OrderModify: OrderId={orderId}, Field={modification.FieldModified}, Old={modification.OldValue}, New={modification.NewValue}");
+                    ModificationTime = message.DateReceived,
+                    ModificationType = "Modify Request",
+                    Status = "Pending",
+                    ModificationDetails = modifyDetails
+                };
+                
+                // Store old values for comparison
+                if (modifyDetails.ContainsKey("price"))
+                {
+                    modification.OldValue = entry.Price?.ToString("F4") ?? "";
+                    modification.NewValue = modifyDetails["price"];
+                    modification.FieldModified = "Price";
+                }
+                else if (modifyDetails.ContainsKey("quantity"))
+                {
+                    modification.OldValue = entry.OriginalQuantity.ToString();
+                    modification.NewValue = modifyDetails["quantity"];
+                    modification.FieldModified = "Quantity";
+                }
+                else if (modifyDetails.ContainsKey("displayQty"))
+                {
+                    modification.OldValue = entry.DisplayQuantity?.ToString() ?? "";
+                    modification.NewValue = modifyDetails["displayQty"];
+                    modification.FieldModified = "DisplayQty";
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"OrderModify: Order {orderId} not found in order book");
+                    modification.FieldModified = "Multiple";
+                    modification.OldValue = "Various";
+                    modification.NewValue = "Various";
                 }
+                
+                // Use new method to add modification and notify UI
+                entry.AddModification(modification);
+                entry.LastModifiedTime = message.DateReceived;
+                entry.UpdateBasicProperties();
+                OrderUpdated?.Invoke(entry);
+                
+                System.Diagnostics.Debug.WriteLine($"OrderModify: OrderId={entry.OrderId}, Field={modification.FieldModified}, Old={modification.OldValue}, New={modification.NewValue}");
             });
         }
 
         private void ProcessOrderModifyResponse(CcgMessage message)
         {
-            if (!ulong.TryParse(message.ClientOrderId, out ulong orderId))
-                return;
+            var entry = FindOrderEntry(message.ClientOrderId);
+            if (entry == null) return;
 
             Application.Current?.Dispatcher.Invoke(() =>
             {
-                if (_orderBook.TryGetValue(orderId, out var entry))
+                // Parse OrderModifyResponse
+                if (message.RawData != null && message.RawData.Length >= 36)
                 {
-                    // Parse OrderModifyResponse
-                    if (message.RawData != null && message.RawData.Length >= 36)
+                    try
                     {
-                        try
+                        ulong filled = BitConverter.ToUInt64(message.RawData, 24);
+                        byte status = message.RawData[32];
+                        byte priorityFlag = message.RawData[33];
+                        ushort reason = BitConverter.ToUInt16(message.RawData, 34);
+                        
+                        // Update the latest modification with response using new method
+                        entry.UpdateLastModification(latestMod =>
                         {
-                            ulong filled = BitConverter.ToUInt64(message.RawData, 24);
-                            byte status = message.RawData[32];
-                            byte priorityFlag = message.RawData[33];
-                            ushort reason = BitConverter.ToUInt16(message.RawData, 34);
-                            
-                            // Update the latest modification with response using new method
-                            entry.UpdateLastModification(latestMod =>
+                            if (latestMod.Status == "Pending")
                             {
-                                if (latestMod.Status == "Pending")
+                                if (status == 1) // New status = successful modification
                                 {
-                                    if (status == 1) // New status = successful modification
-                                    {
-                                        latestMod.Status = "Accepted";
-                                        latestMod.PriorityRetained = priorityFlag == 2; // 2 = Retained
-                                        
-                                        // Apply the modification to the order if successful
-                                        ApplyModificationToOrder(entry, latestMod);
-                                    }
-                                    else
-                                    {
-                                        latestMod.Status = "Rejected";
-                                        latestMod.RejectReason = GetRejectReasonName(reason);
-                                    }
+                                    latestMod.Status = "Accepted";
+                                    latestMod.PriorityRetained = priorityFlag == 2; // 2 = Retained
+                                    
+                                    // Apply the modification to the order if successful
+                                    ApplyModificationToOrder(entry, latestMod);
                                 }
-                            });
-                            
-                            // Update filled quantity
-                            entry.FilledQuantity = filled;
-                            entry.CurrentQuantity = entry.OriginalQuantity - filled;
-                            entry.Status = GetOrderStatusName(status);
-                            entry.LastModifiedTime = message.DateReceived;
-                            entry.UpdateBasicProperties();
-                            
-                            OrderUpdated?.Invoke(entry);
-                            
-                            System.Diagnostics.Debug.WriteLine($"OrderModifyResponse: OrderId={orderId}, Status={GetOrderStatusName(status)}, Priority={(priorityFlag == 2 ? "Retained" : "Lost")}");
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"Error parsing OrderModifyResponse: {ex.Message}");
-                        }
+                                else
+                                {
+                                    latestMod.Status = "Rejected";
+                                    latestMod.RejectReason = GetRejectReasonName(reason);
+                                }
+                            }
+                        });
+                        
+                        // Update filled quantity
+                        entry.FilledQuantity = filled;
+                        entry.CurrentQuantity = entry.OriginalQuantity - filled;
+                        entry.Status = GetOrderStatusName(status);
+                        entry.LastModifiedTime = message.DateReceived;
+                        entry.UpdateBasicProperties();
+                        
+                        OrderUpdated?.Invoke(entry);
+                        
+                        System.Diagnostics.Debug.WriteLine($"OrderModifyResponse: OrderId={entry.OrderId}, Status={GetOrderStatusName(status)}, Priority={(priorityFlag == 2 ? "Retained" : "Lost")}");
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error parsing OrderModifyResponse: {ex.Message}");
                     }
                 }
             });
@@ -290,74 +325,68 @@ namespace RC_GUI_WATS.Services
 
         private void ProcessOrderCancel(CcgMessage message)
         {
-            if (!ulong.TryParse(message.ClientOrderId, out ulong orderId))
-                return;
+            var entry = FindOrderEntry(message.ClientOrderId);
+            if (entry == null) return;
 
             Application.Current?.Dispatcher.Invoke(() =>
             {
-                if (_orderBook.TryGetValue(orderId, out var entry))
+                var cancelAttempt = new OrderCancelAttempt
                 {
-                    var cancelAttempt = new OrderCancelAttempt
-                    {
-                        CancelTime = message.DateReceived,
-                        Status = "Pending",
-                        CancelReason = "User Request"
-                    };
-                    
-                    // Use new method to add cancel attempt and notify UI
-                    entry.AddCancelAttempt(cancelAttempt);
-                    entry.LastModifiedTime = message.DateReceived;
-                    entry.UpdateBasicProperties();
-                    OrderUpdated?.Invoke(entry);
-                }
+                    CancelTime = message.DateReceived,
+                    Status = "Pending",
+                    CancelReason = "User Request"
+                };
+                
+                // Use new method to add cancel attempt and notify UI
+                entry.AddCancelAttempt(cancelAttempt);
+                entry.LastModifiedTime = message.DateReceived;
+                entry.UpdateBasicProperties();
+                OrderUpdated?.Invoke(entry);
             });
         }
 
         private void ProcessOrderCancelResponse(CcgMessage message)
         {
-            if (!ulong.TryParse(message.ClientOrderId, out ulong orderId))
-                return;
+            var entry = FindOrderEntry(message.ClientOrderId);
+            if (entry == null) return;
 
             Application.Current?.Dispatcher.Invoke(() =>
             {
-                if (_orderBook.TryGetValue(orderId, out var entry))
+                // Parse cancel response
+                if (message.RawData != null && message.RawData.Length >= 28)
                 {
-                    // Parse cancel response
-                    if (message.RawData != null && message.RawData.Length >= 28)
+                    try
                     {
-                        try
+                        byte status = message.RawData[24];
+                        ushort reason = BitConverter.ToUInt16(message.RawData, 25);
+                        byte execTypeReason = message.RawData[27];
+                        
+                        // Update the latest cancel attempt using new method
+                        entry.UpdateLastCancelAttempt(latestCancel =>
                         {
-                            byte status = message.RawData[24];
-                            ushort reason = BitConverter.ToUInt16(message.RawData, 25);
-                            byte execTypeReason = message.RawData[27];
-                            
-                            // Update the latest cancel attempt using new method
-                            entry.UpdateLastCancelAttempt(latestCancel =>
+                            if (latestCancel.Status == "Pending")
                             {
-                                if (latestCancel.Status == "Pending")
+                                if (status == 2) // Cancelled status
                                 {
-                                    if (status == 2) // Cancelled status
-                                    {
-                                        latestCancel.Status = "Accepted";
-                                    }
-                                    else
-                                    {
-                                        latestCancel.Status = "Rejected";
-                                        latestCancel.RejectReason = GetRejectReasonName(reason);
-                                    }
+                                    latestCancel.Status = "Accepted";
                                 }
-                            });
-                            
-                            entry.Status = GetOrderStatusName(status);
-                            entry.LastExecTypeReason = GetExecTypeReasonName(execTypeReason);
-                            entry.LastModifiedTime = message.DateReceived;
-                            entry.UpdateBasicProperties();
-                            OrderUpdated?.Invoke(entry);
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"Error parsing OrderCancelResponse: {ex.Message}");
-                        }
+                                else
+                                {
+                                    latestCancel.Status = "Rejected";
+                                    latestCancel.RejectReason = GetRejectReasonName(reason);
+                                }
+                            }
+                        });
+                        
+                        entry.Status = GetOrderStatusName(status);
+                        entry.LastExecTypeReason = GetExecTypeReasonName(execTypeReason);
+                        entry.LastModifiedTime = message.DateReceived;
+                        entry.UpdateBasicProperties();
+                        OrderUpdated?.Invoke(entry);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error parsing OrderCancelResponse: {ex.Message}");
                     }
                 }
             });
@@ -365,57 +394,54 @@ namespace RC_GUI_WATS.Services
 
         private void ProcessTrade(CcgMessage message)
         {
-            if (!ulong.TryParse(message.ClientOrderId, out ulong orderId))
-                return;
+            var entry = FindOrderEntry(message.ClientOrderId);
+            if (entry == null) return;
 
             Application.Current?.Dispatcher.Invoke(() =>
             {
-                if (_orderBook.TryGetValue(orderId, out var entry))
+                // Parse Trade message
+                if (message.RawData != null && message.RawData.Length >= 52)
                 {
-                    // Parse Trade message
-                    if (message.RawData != null && message.RawData.Length >= 52)
+                    try
                     {
-                        try
+                        uint tradeId = BitConverter.ToUInt32(message.RawData, 24);
+                        long priceRaw = BitConverter.ToInt64(message.RawData, 28);
+                        ulong quantity = BitConverter.ToUInt64(message.RawData, 36);
+                        ulong leavesQty = BitConverter.ToUInt64(message.RawData, 44);
+                        
+                        decimal price = (decimal)priceRaw / 100000000m; // Assuming 8 decimal places
+                        
+                        var trade = new OrderTrade
                         {
-                            uint tradeId = BitConverter.ToUInt32(message.RawData, 24);
-                            long priceRaw = BitConverter.ToInt64(message.RawData, 28);
-                            ulong quantity = BitConverter.ToUInt64(message.RawData, 36);
-                            ulong leavesQty = BitConverter.ToUInt64(message.RawData, 44);
-                            
-                            decimal price = (decimal)priceRaw / 100000000m; // Assuming 8 decimal places
-                            
-                            var trade = new OrderTrade
-                            {
-                                TradeId = tradeId,
-                                Price = price,
-                                Quantity = quantity,
-                                LeavesQuantity = leavesQty,
-                                ExecutionTime = message.DateReceived
-                            };
-                            
-                            // Use new method to add trade and notify UI
-                            entry.AddTrade(trade);
-                            entry.FilledQuantity += quantity;
-                            entry.CurrentQuantity = leavesQty;
-                            
-                            // Update status based on remaining quantity
-                            if (leavesQty == 0)
-                            {
-                                entry.Status = "Filled";
-                            }
-                            else
-                            {
-                                entry.Status = "PartiallyFilled";
-                            }
-                            
-                            entry.LastModifiedTime = message.DateReceived;
-                            entry.UpdateBasicProperties();
-                            OrderUpdated?.Invoke(entry);
-                        }
-                        catch (Exception ex)
+                            TradeId = tradeId,
+                            Price = price,
+                            Quantity = quantity,
+                            LeavesQuantity = leavesQty,
+                            ExecutionTime = message.DateReceived
+                        };
+                        
+                        // Use new method to add trade and notify UI
+                        entry.AddTrade(trade);
+                        entry.FilledQuantity += quantity;
+                        entry.CurrentQuantity = leavesQty;
+                        
+                        // Update status based on remaining quantity
+                        if (leavesQty == 0)
                         {
-                            System.Diagnostics.Debug.WriteLine($"Error parsing Trade: {ex.Message}");
+                            entry.Status = "Filled";
                         }
+                        else
+                        {
+                            entry.Status = "PartiallyFilled";
+                        }
+                        
+                        entry.LastModifiedTime = message.DateReceived;
+                        entry.UpdateBasicProperties();
+                        OrderUpdated?.Invoke(entry);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error parsing Trade: {ex.Message}");
                     }
                 }
             });
@@ -455,6 +481,12 @@ namespace RC_GUI_WATS.Services
                     {
                         _orders.Remove(oldestOrder);
                         _orderBook.Remove(oldestOrder.OrderId);
+                        
+                        // Remove from ClientOrderId lookup too
+                        if (!string.IsNullOrEmpty(oldestOrder.ClientOrderId))
+                        {
+                            _ordersByClientOrderId.Remove(oldestOrder.ClientOrderId);
+                        }
                     }
                 }
                 
@@ -464,10 +496,43 @@ namespace RC_GUI_WATS.Services
             return entry;
         }
 
-        private CcgMessage FindCorrespondingOrderAdd(CcgMessage orderAddResponse)
+        private OrderBookEntry FindOrderEntry(string orderIdRef)
         {
-            // Find the most recent OrderAdd message that could correspond to this response
-            // This is a simplified approach - in a real system you'd want more sophisticated matching
+            // Try to parse as OrderId first
+            if (ulong.TryParse(orderIdRef, out ulong orderId))
+            {
+                if (_orderBook.TryGetValue(orderId, out var entry))
+                {
+                    return entry;
+                }
+            }
+            
+            // Try to find by ClientOrderId
+            if (_ordersByClientOrderId.TryGetValue(orderIdRef, out var entryByClientId))
+            {
+                return entryByClientId;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"Order not found: {orderIdRef}");
+            return null;
+        }
+
+        private CcgMessage FindCorrespondingOrderAdd(OrderBookEntry entry, CcgMessage orderAddResponse)
+        {
+            // Try to find the most recent OrderAdd message that matches this response
+            // Look for pending OrderAdd messages received shortly before this response
+            var recentPending = _pendingOrderAdds
+                .Where(p => p.ReceivedTime <= orderAddResponse.DateReceived)
+                .OrderByDescending(p => p.ReceivedTime)
+                .FirstOrDefault();
+            
+            if (recentPending != null)
+            {
+                _pendingOrderAdds.Remove(recentPending); // Remove it since we matched it
+                return recentPending.Message;
+            }
+            
+            // Fallback - find any recent OrderAdd message
             var recentMessages = _ccgMessagesService.CcgMessages.Take(50);
             return recentMessages.FirstOrDefault(m => m.Name == "OrderAdd");
         }
@@ -478,13 +543,18 @@ namespace RC_GUI_WATS.Services
             {
                 try
                 {
-                    // Parse key fields from OrderAdd
+                    // Parse key fields from OrderAdd (based on GPW WATS specification)
                     uint instrumentId = BitConverter.ToUInt32(orderAddMessage.RawData, 17);
                     byte orderType = orderAddMessage.RawData[21];
                     byte timeInForce = orderAddMessage.RawData[22];
                     byte side = orderAddMessage.RawData[23];
                     long priceRaw = BitConverter.ToInt64(orderAddMessage.RawData, 24);
                     ulong quantity = BitConverter.ToUInt64(orderAddMessage.RawData, 40);
+                    
+                    // Extract ClientOrderId from offset 147 (20 bytes)
+                    var clientOrderIdBytes = new byte[20];
+                    Array.Copy(orderAddMessage.RawData, 147, clientOrderIdBytes, 0, 20);
+                    string clientOrderId = Encoding.ASCII.GetString(clientOrderIdBytes).TrimEnd('\0', ' ');
                     
                     entry.InstrumentId = instrumentId;
                     entry.OrderType = GetOrderTypeName(orderType);
@@ -493,8 +563,9 @@ namespace RC_GUI_WATS.Services
                     entry.Price = (decimal)priceRaw / 100000000m;
                     entry.OriginalQuantity = quantity;
                     entry.CurrentQuantity = quantity; // Will be updated as fills occur
+                    entry.ClientOrderId = clientOrderId;
                     
-                    System.Diagnostics.Debug.WriteLine($"Populated order details: OrderId={entry.OrderId}, InstrumentId={instrumentId}, Side={entry.Side}, Price={entry.Price}, Qty={quantity}");
+                    System.Diagnostics.Debug.WriteLine($"Populated order details: OrderId={entry.OrderId}, ClientOrderId='{clientOrderId}', InstrumentId={instrumentId}, Side={entry.Side}, Price={entry.Price}, Qty={quantity}");
                 }
                 catch (Exception ex)
                 {
@@ -663,6 +734,8 @@ namespace RC_GUI_WATS.Services
             Application.Current?.Dispatcher.Invoke(() =>
             {
                 _orderBook.Clear();
+                _ordersByClientOrderId.Clear();
+                _pendingOrderAdds.Clear();
                 _orders.Clear();
                 OrderBookCleared?.Invoke();
             });
@@ -671,6 +744,11 @@ namespace RC_GUI_WATS.Services
         public OrderBookEntry GetOrder(ulong orderId)
         {
             return _orderBook.TryGetValue(orderId, out var order) ? order : null;
+        }
+
+        public OrderBookEntry GetOrderByClientOrderId(string clientOrderId)
+        {
+            return _ordersByClientOrderId.TryGetValue(clientOrderId, out var order) ? order : null;
         }
 
         public IEnumerable<OrderBookEntry> GetOrdersByInstrument(uint instrumentId)

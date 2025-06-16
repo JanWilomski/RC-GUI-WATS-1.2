@@ -1,4 +1,4 @@
-<!-- Views/MessagesTabControl.xaml - Poprawiona wersja z lepszym wyświetlaniem limitów -->
+<!-- Views/MessagesTabControl.xaml - Updated version with improved ClientOrderId handling -->
 <UserControl x:Class="RC_GUI_WATS.Views.MessagesTabControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -543,7 +543,23 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
                         
-                        <DataGridTextColumn Header="ClientOrderId" Binding="{Binding ClientOrderId}" Width="120"/>
+                        <!-- Updated ClientOrderId column to use the improved display property -->
+                        <DataGridTextColumn Header="ClientOrderId" Binding="{Binding ClientOrderIdDisplay}" Width="120">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="FontFamily" Value="Consolas"/>
+                                    <Setter Property="FontSize" Value="9"/>
+                                    <Setter Property="ToolTip" Value="{Binding ClientOrderId}"/>
+                                    <Style.Triggers>
+                                        <!-- Highlight actual ClientOrderIds vs OrderId fallbacks -->
+                                        <DataTrigger Binding="{Binding ClientOrderId}" Value="">
+                                            <Setter Property="Foreground" Value="Gray"/>
+                                            <Setter Property="FontStyle" Value="Italic"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
                         
                         <DataGridTextColumn Header="Last Update" Binding="{Binding LastModifiedTime, StringFormat=HH:mm:ss.fff}" Width="75"/>
                     </DataGrid.Columns>
