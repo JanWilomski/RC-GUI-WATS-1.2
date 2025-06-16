@@ -1,6 +1,8 @@
-﻿using System;
+﻿// Services/HeartbeatMonitorService.cs - Thread-safe version
+using System;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using RC_GUI_WATS.Models;
 
 namespace RC_GUI_WATS.Services
@@ -35,7 +37,28 @@ namespace RC_GUI_WATS.Services
                 if (_currentStatus != value)
                 {
                     _currentStatus = value;
-                    HeartbeatStatusChanged?.Invoke(_currentStatus);
+                    
+                    // Safely invoke event on UI thread
+                    try
+                    {
+                        if (Application.Current?.Dispatcher?.CheckAccess() == true)
+                        {
+                            // Already on UI thread
+                            HeartbeatStatusChanged?.Invoke(_currentStatus);
+                        }
+                        else
+                        {
+                            // Dispatch to UI thread
+                            Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
+                            {
+                                HeartbeatStatusChanged?.Invoke(_currentStatus);
+                            }));
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error invoking HeartbeatStatusChanged: {ex.Message}");
+                    }
                 }
             }
         }

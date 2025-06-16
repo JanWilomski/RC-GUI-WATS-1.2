@@ -1,6 +1,6 @@
-﻿using System;
+﻿// ViewModels/HeartbeatIndicatorViewModel.cs
+using System;
 using System.Windows.Media;
-using System.Windows.Threading;
 using RC_GUI_WATS.Services;
 
 namespace RC_GUI_WATS.ViewModels
@@ -8,21 +8,19 @@ namespace RC_GUI_WATS.ViewModels
     public class HeartbeatIndicatorViewModel : BaseViewModel
     {
         private readonly HeartbeatMonitorService _heartbeatMonitor;
-        private readonly DispatcherTimer _updateTimer;
-        private DateTime _lastHeartbeatTime;
-
-        private Brush _statusBrush;
-        public Brush StatusBrush
-        {
-            get => _statusBrush;
-            set => SetProperty(ref _statusBrush, value);
-        }
 
         private string _statusText;
         public string StatusText
         {
             get => _statusText;
             set => SetProperty(ref _statusText, value);
+        }
+
+        private Brush _statusBrush;
+        public Brush StatusBrush
+        {
+            get => _statusBrush;
+            set => SetProperty(ref _statusBrush, value);
         }
 
         private string _lastHeartbeatText;
@@ -32,62 +30,77 @@ namespace RC_GUI_WATS.ViewModels
             set => SetProperty(ref _lastHeartbeatText, value);
         }
 
+        private DateTime _lastHeartbeatTime;
+
         public HeartbeatIndicatorViewModel(HeartbeatMonitorService heartbeatMonitor)
         {
             _heartbeatMonitor = heartbeatMonitor;
             _heartbeatMonitor.HeartbeatStatusChanged += OnHeartbeatStatusChanged;
             
-            // Timer to update the "last heartbeat" time display
-            _updateTimer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromSeconds(1)
-            };
-            _updateTimer.Tick += UpdateLastHeartbeatDisplay;
-            _updateTimer.Start();
-            
             // Initialize with current status
-            OnHeartbeatStatusChanged(_heartbeatMonitor.CurrentStatus);
+            UpdateDisplay(_heartbeatMonitor.CurrentStatus);
         }
 
         private void OnHeartbeatStatusChanged(HeartbeatStatus status)
         {
-            switch (status)
+            // Use safer approach for UI thread dispatching
+            try
             {
-                case HeartbeatStatus.Connected:
-                    StatusBrush = Brushes.Green;
-                    StatusText = "RC Online";
-                    _lastHeartbeatTime = DateTime.Now;
-                    break;
-                    
-                case HeartbeatStatus.Warning:
-                    StatusBrush = Brushes.Orange;
-                    StatusText = "RC Warning";
-                    break;
-                    
-                case HeartbeatStatus.Disconnected:
-                    StatusBrush = Brushes.Red;
-                    StatusText = "RC Offline";
-                    break;
-            }
-            
-            UpdateLastHeartbeatDisplay(null, null);
-        }
-
-        private void UpdateLastHeartbeatDisplay(object sender, EventArgs e)
-        {
-            if (_heartbeatMonitor.CurrentStatus == HeartbeatStatus.Connected)
-            {
-                var elapsed = DateTime.Now - _lastHeartbeatTime;
-                if (elapsed.TotalSeconds < 60)
+                if (System.Windows.Application.Current?.Dispatcher?.CheckAccess() == true)
                 {
-                    LastHeartbeatText = $"({elapsed.TotalSeconds:F0}s)";
+                    // We're already on UI thread
+                    UpdateDisplay(status);
                 }
                 else
                 {
-                    LastHeartbeatText = $"({elapsed.TotalMinutes:F0}m)";
+                    // We need to dispatch to UI thread
+                    System.Windows.Application.Current?.Dispatcher?.BeginInvoke(new System.Action(() =>
+                    {
+                        UpdateDisplay(status);
+                    }));
                 }
             }
-            else if (_heartbeatMonitor.CurrentStatus == HeartbeatStatus.Warning)
+            catch (Exception ex)
+            {
+                // Fallback - log error but don't crash
+                System.Diagnostics.Debug.WriteLine($"Error updating heartbeat status: {ex.Message}");
+            }
+        }
+
+        private void UpdateDisplay(HeartbeatStatus status)
+        {
+            switch (status)
+            {
+                case HeartbeatStatus.Connected:
+                    StatusText = "Connected";
+                    StatusBrush = Brushes.Green;
+                    _lastHeartbeatTime = DateTime.Now;
+                    LastHeartbeatText = "";
+                    break;
+                    
+                case HeartbeatStatus.Warning:
+                    StatusText = "Warning";
+                    StatusBrush = Brushes.Orange;
+                    UpdateLastHeartbeatText();
+                    break;
+                    
+                case HeartbeatStatus.Disconnected:
+                    StatusText = "Disconnected";
+                    StatusBrush = Brushes.Red;
+                    UpdateLastHeartbeatText();
+                    break;
+                    
+                default:
+                    StatusText = "Unknown";
+                    StatusBrush = Brushes.Gray;
+                    LastHeartbeatText = "";
+                    break;
+            }
+        }
+
+        private void UpdateLastHeartbeatText()
+        {
+            if (_lastHeartbeatTime != default)
             {
                 var elapsed = DateTime.Now - _lastHeartbeatTime;
                 LastHeartbeatText = $"({elapsed.TotalSeconds:F0}s ago)";
@@ -96,12 +109,6 @@ namespace RC_GUI_WATS.ViewModels
             {
                 LastHeartbeatText = "";
             }
-        }
-
-        public void Dispose()
-        {
-            _updateTimer?.Stop();
-            _heartbeatMonitor.HeartbeatStatusChanged -= OnHeartbeatStatusChanged;
         }
     }
 }

@@ -1,4 +1,4 @@
-<!-- Views/MessagesTabControl.xaml - Updated version with improved ClientOrderId handling -->
+<!-- Views/MessagesTabControl.xaml - Updated version with advanced message filtering -->
 <UserControl x:Class="RC_GUI_WATS.Views.MessagesTabControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -8,7 +8,100 @@
              mc:Ignorable="d">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        
+        <!-- Style for message type filter ComboBox -->
+        <Style x:Key="MessageTypeFilterComboBoxStyle" TargetType="ComboBox">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton Name="ToggleButton" 
+                                        Background="White" 
+                                        BorderBrush="Gray" 
+                                        BorderThickness="1"
+                                        IsChecked="{Binding Path=IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                        ClickMode="Press">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="20"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Message Types" Margin="5,2" VerticalAlignment="Center"/>
+                                    <Path Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" 
+                                          Data="M 0 0 L 4 4 L 8 0 Z" Fill="Gray"/>
+                                </Grid>
+                            </ToggleButton>
+                            <Popup Name="Popup" 
+                                   Placement="Bottom"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True" 
+                                   Focusable="False"
+                                   PopupAnimation="Slide">
+                                <Grid MinWidth="{TemplateBinding ActualWidth}" MaxHeight="300">
+                                    <Border Background="White" BorderBrush="Gray" BorderThickness="1">
+                                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                            <StackPanel Margin="5">
+                                                <!-- Quick action buttons -->
+                                                <Grid Margin="0,0,0,5">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="5"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="5"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Button Grid.Column="0" Content="All" Command="{Binding SelectAllMessageTypesCommand}" 
+                                                            FontSize="10" Padding="3,1"/>
+                                                    <Button Grid.Column="2" Content="None" Command="{Binding DeselectAllMessageTypesCommand}" 
+                                                            FontSize="10" Padding="3,1"/>
+                                                    <Button Grid.Column="4" Content="Reset" Command="{Binding ResetMessageFiltersCommand}" 
+                                                            FontSize="10" Padding="3,1"/>
+                                                </Grid>
+                                                
+                                                <Separator Margin="0,0,0,5"/>
+                                                
+                                                <!-- Order Messages -->
+                                                <TextBlock Text="Order Messages" FontWeight="Bold" FontSize="11" Margin="0,5,0,2"/>
+                                                <CheckBox Content="OrderAdd" IsChecked="{Binding ShowOrderAdd}" Margin="10,1"/>
+                                                <CheckBox Content="OrderAddResponse" IsChecked="{Binding ShowOrderAddResponse}" Margin="10,1"/>
+                                                <CheckBox Content="OrderModify" IsChecked="{Binding ShowOrderModify}" Margin="10,1"/>
+                                                <CheckBox Content="OrderModifyResponse" IsChecked="{Binding ShowOrderModifyResponse}" Margin="10,1"/>
+                                                <CheckBox Content="OrderCancel" IsChecked="{Binding ShowOrderCancel}" Margin="10,1"/>
+                                                <CheckBox Content="OrderCancelResponse" IsChecked="{Binding ShowOrderCancelResponse}" Margin="10,1"/>
+                                                
+                                                <!-- Trade Messages -->
+                                                <TextBlock Text="Trade Messages" FontWeight="Bold" FontSize="11" Margin="0,5,0,2"/>
+                                                <CheckBox Content="Trade" IsChecked="{Binding ShowTrade}" Margin="10,1"/>
+                                                <CheckBox Content="Trade Capture Reports" IsChecked="{Binding ShowTradeCaptureReports}" Margin="10,1"/>
+                                                
+                                                <!-- Quote Messages -->
+                                                <TextBlock Text="Quote Messages" FontWeight="Bold" FontSize="11" Margin="0,5,0,2"/>
+                                                <CheckBox Content="MassQuote" IsChecked="{Binding ShowMassQuote}" Margin="10,1"/>
+                                                <CheckBox Content="MassQuoteResponse" IsChecked="{Binding ShowMassQuoteResponse}" Margin="10,1"/>
+                                                
+                                                <!-- Mass Cancel Messages -->
+                                                <TextBlock Text="Mass Cancel Messages" FontWeight="Bold" FontSize="11" Margin="0,5,0,2"/>
+                                                <CheckBox Content="OrderMassCancel" IsChecked="{Binding ShowOrderMassCancel}" Margin="10,1"/>
+                                                <CheckBox Content="OrderMassCancelResponse" IsChecked="{Binding ShowOrderMassCancelResponse}" Margin="10,1"/>
+                                                
+                                                <!-- System Messages -->
+                                                <TextBlock Text="System Messages" FontWeight="Bold" FontSize="11" Margin="0,5,0,2"/>
+                                                <CheckBox Content="Reject" IsChecked="{Binding ShowReject}" Margin="10,1"/>
+                                                <CheckBox Content="Login/Logout" IsChecked="{Binding ShowLoginLogout}" Margin="10,1"/>
+                                                <CheckBox Content="Heartbeat" IsChecked="{Binding ShowHeartbeat}" Margin="10,1"/>
+                                                <CheckBox Content="Others" IsChecked="{Binding ShowOthers}" Margin="10,1"/>
+                                            </StackPanel>
+                                        </ScrollViewer>
+                                    </Border>
+                                </Grid>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
+    
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -169,38 +262,22 @@
             </Grid.RowDefinitions>
             
             <!-- CCG Messages Header and Filters -->
-            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,5">
-                <TextBlock Text="CCG Messages" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,15,0"/>
-                
-                <!-- Filters -->
-                <TextBlock Text="Type:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                <TextBox Text="{Binding MessageTypeFilter, UpdateSourceTrigger=PropertyChanged}" 
-                         Width="100" Height="22" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                
-                <TextBlock Text="Side:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                <ComboBox SelectedItem="{Binding SideFilter}" Width="80" Height="22" VerticalAlignment="Center" Margin="0,0,10,0">
-                    <ComboBoxItem Content=""/>
-                    <ComboBoxItem Content="Buy"/>
-                    <ComboBoxItem Content="Sell"/>
-                    <ComboBoxItem Content="Trade"/>
-                    <ComboBoxItem Content="Dual"/>
-                    <ComboBoxItem Content="MassQuote"/>
-                    <ComboBoxItem Content="MassQuoteResp"/>
-                </ComboBox>
-                
-                <TextBlock Text="InstrumentID:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                <TextBox Text="{Binding InstrumentIdFilter, UpdateSourceTrigger=PropertyChanged}" 
-                         Width="80" Height="22" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                
-                <Button Content="Clear Filters" Command="{Binding ClearFiltersCommand}" 
-                        Padding="5,2" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                        
-                <CheckBox x:Name="ShowRawDataCheckBox" Content="Show Raw" VerticalAlignment="Center" Margin="5,0,0,0"/>
-            </StackPanel>
+            <Grid Grid.Row="0" Margin="0,0,0,5">
+                <!-- Header row - Title and controls -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                    <TextBlock Text="CCG Messages" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                    
+                    <!-- Message Type Filter ComboBox -->
+                    <ComboBox Width="120" Height="25" Style="{StaticResource MessageTypeFilterComboBoxStyle}"
+                              VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    
+                    <CheckBox x:Name="ShowRawDataCheckBox" Content="Show Raw" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                </StackPanel>
+            </Grid>
             
-            <!-- CCG Messages DataGrid -->
+            <!-- CCG Messages DataGrid - Updated to use filtered collection -->
             <DataGrid Grid.Row="1" AutoGenerateColumns="False" 
-                      ItemsSource="{Binding CcgMessages}"
+                      ItemsSource="{Binding CcgMessagesView}"
                       CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True"
                       GridLinesVisibility="All"
                       FontSize="10" RowHeight="20"
@@ -543,23 +620,7 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
                         
-                        <!-- Updated ClientOrderId column to use the improved display property -->
-                        <DataGridTextColumn Header="ClientOrderId" Binding="{Binding ClientOrderIdDisplay}" Width="120">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="FontFamily" Value="Consolas"/>
-                                    <Setter Property="FontSize" Value="9"/>
-                                    <Setter Property="ToolTip" Value="{Binding ClientOrderId}"/>
-                                    <Style.Triggers>
-                                        <!-- Highlight actual ClientOrderIds vs OrderId fallbacks -->
-                                        <DataTrigger Binding="{Binding ClientOrderId}" Value="">
-                                            <Setter Property="Foreground" Value="Gray"/>
-                                            <Setter Property="FontStyle" Value="Italic"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="ClientOrderId" Binding="{Binding ClientOrderId}" Width="120"/>
                         
                         <DataGridTextColumn Header="Last Update" Binding="{Binding LastModifiedTime, StringFormat=HH:mm:ss.fff}" Width="75"/>
                     </DataGrid.Columns>
