@@ -1,10 +1,12 @@
 <Window x:Class="RC_GUI_WATS.AddLimitWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Dodaj nowy limit" Height="300" Width="450" 
+        Title="Dodaj nowy limit" Height="400" Width="500" 
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
     <Grid Margin="10">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -18,6 +20,7 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
         
+        <!-- Zakres -->
         <TextBlock Grid.Row="0" Grid.Column="0" Text="Zakres:" VerticalAlignment="Center"/>
         <ComboBox Grid.Row="0" Grid.Column="1" x:Name="ScopeTypeComboBox" Margin="0,5"
                   SelectionChanged="ScopeTypeComboBox_SelectionChanged">
@@ -27,34 +30,47 @@
             <ComboBoxItem Content="Pojedynczy instrument"/>
         </ComboBox>
         
+        <!-- Wartość zakresu -->
         <TextBlock Grid.Row="1" Grid.Column="0" Text="Wartość zakresu:" VerticalAlignment="Center"/>
         <TextBox Grid.Row="1" Grid.Column="1" x:Name="ScopeValueTextBox" Margin="0,5"/>
         
+        <!-- Typ limitu -->
         <TextBlock Grid.Row="2" Grid.Column="0" Text="Typ limitu:" VerticalAlignment="Center"/>
-        <ComboBox Grid.Row="2" Grid.Column="1" x:Name="LimitTypeComboBox" Margin="0,5">
-            <ComboBoxItem Content="halt"/>
-            <ComboBoxItem Content="maxOrderRate"/>
-            <ComboBoxItem Content="maxTransaction"/>
-            <ComboBoxItem Content="maxAbsShares"/>
-            <ComboBoxItem Content="maxShortShares"/>
+        <ComboBox Grid.Row="2" Grid.Column="1" x:Name="LimitTypeComboBox" Margin="0,5"
+                  SelectionChanged="LimitTypeComboBox_SelectionChanged">
+            <!-- Opcje będą dodawane dynamicznie w kodzie -->
         </ComboBox>
         
+        <!-- Wartość limitu -->
         <TextBlock Grid.Row="3" Grid.Column="0" Text="Wartość limitu:" VerticalAlignment="Center"/>
         <TextBox Grid.Row="3" Grid.Column="1" x:Name="LimitValueTextBox" Margin="0,5"/>
         
+        <!-- Podpowiedź dla zakresu -->
         <TextBlock Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" 
-                  Text="Podpowiedź:" 
-                  Margin="0,10,0,2" FontWeight="Bold"/>
+                  Text="Podpowiedź zakresu:" 
+                  Margin="0,10,0,2" FontWeight="Bold" FontSize="11"/>
         
         <TextBlock Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" 
                   x:Name="HintTextBlock"
-                  Text="Dla halt używaj Y/N, dla maxOrderRate np. 100/s" 
-                  Margin="0,0,0,5" TextWrapping="Wrap" FontSize="11" Foreground="DarkGray"/>
+                  Text="Limit będzie zastosowany do wszystkich instrumentów" 
+                  Margin="0,0,0,5" TextWrapping="Wrap" FontSize="10" Foreground="DarkGray"/>
         
-        <StackPanel Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2" 
-                    Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom">
+        <!-- Podpowiedź dla typu limitu -->
+        <TextBlock Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2" 
+                  Text="Podpowiedź limitu:" 
+                  Margin="0,10,0,2" FontWeight="Bold" FontSize="11"/>
+        
+        <TextBlock Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="2" 
+                  x:Name="LimitValueHintTextBlock"
+                  Text="Wybierz typ limitu" 
+                  Margin="0,0,0,5" TextWrapping="Wrap" FontSize="10" Foreground="DarkBlue"/>
+        
+        <!-- Przyciski -->
+        <StackPanel Grid.Row="8" Grid.Column="0" Grid.ColumnSpan="2" 
+                    Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                    Margin="0,20,0,0">
             <Button Content="Anuluj" Width="80" Margin="5" Click="CancelButton_Click"/>
-            <Button Content="Dodaj" Width="80" Margin="5" Click="AddButton_Click"/>
+            <Button Content="Dodaj" Width="80" Margin="5" Click="AddButton_Click" IsDefault="True"/>
         </StackPanel>
     </Grid>
 </Window>
