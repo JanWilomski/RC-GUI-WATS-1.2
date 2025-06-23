@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Linq;
@@ -16,6 +17,40 @@ namespace RC_GUI_WATS.ViewModels
         private readonly LimitsService _limitsService;
         private readonly ConfigurationService _configService;
         private readonly FileLoggingService _fileLoggingService;
+        
+        // Definicje typów limitów dla różnych zakresów (jak w AddLimitWindow)
+        private readonly List<LimitTypeInfo> _allInstrumentsLimits = new List<LimitTypeInfo>
+        {
+            new LimitTypeInfo("halt", "Y/N", "Zatrzymuje handel na wszystkich instrumentach"),
+            new LimitTypeInfo("maxMessageCount", "liczba", "Maksymalna liczba wiadomości"),
+            new LimitTypeInfo("maxOrderRate", "liczba/s", "Maksymalny rate zleceń, np. 100/s"),
+            new LimitTypeInfo("maxTransaction", "procent", "Procent nominalnej wartości transakcji"),
+            new LimitTypeInfo("maxAbsShares", "liczba", "Maksymalna bezwzględna pozycja"),
+            new LimitTypeInfo("maxShortShares", "liczba", "Maksymalna pozycja krótka"),
+            new LimitTypeInfo("maxCapital", "kwota", "Maksymalny kapitał"),
+            new LimitTypeInfo("collars", "wartość", "Ograniczenia cenowe"),
+            new LimitTypeInfo("maxShortCapital", "kwota", "Maksymalny kapitał pozycji krótkiej"),
+            new LimitTypeInfo("capitalImpact", "liczba", "")
+        };
+        
+        private readonly List<LimitTypeInfo> _otherScopesLimits = new List<LimitTypeInfo>
+        {
+            new LimitTypeInfo("halt", "Y/N", "Zatrzymuje handel na wybranych instrumentach"),
+            new LimitTypeInfo("maxTransaction", "procent", "Procent nominalnej wartości transakcji"),
+            new LimitTypeInfo("maxShortCapital", "kwota", "Maksymalny kapitał pozycji krótkiej"),
+            new LimitTypeInfo("capitalImpact", "procent", "Wpływ na kapitał (tylko futures)"),
+            new LimitTypeInfo("maxAbsShares", "liczba", "Maksymalna bezwzględna pozycja"),
+            new LimitTypeInfo("maxShortShares", "liczba", "Maksymalna pozycja krótka"),
+            new LimitTypeInfo("collars", "wartość", "Ograniczenia cenowe"),
+        };
+
+        // Dostępne typy limitów do bindowania w XAML
+        private ObservableCollection<LimitTypeInfo> _availableLimitTypes = new ObservableCollection<LimitTypeInfo>();
+        public ObservableCollection<LimitTypeInfo> AvailableLimitTypes
+        {
+            get => _availableLimitTypes;
+            set => SetProperty(ref _availableLimitTypes, value);
+        }
         
         // Properties for settings
         private string _serverIp;
@@ -58,6 +93,7 @@ namespace RC_GUI_WATS.ViewModels
                 if (SetProperty(ref _displayMode, value))
                 {
                     RefreshDisplayedLimits();
+                    UpdateDisplayModeInfo();
                     _fileLoggingService.LogSettings("Limits display mode changed", value.ToString());
                 }
             }
@@ -118,6 +154,7 @@ namespace RC_GUI_WATS.ViewModels
                 if (SetProperty(ref _quickScopeTypeSelectedIndex, value))
                 {
                     UpdateQuickScopeValue();
+                    UpdateAvailableLimitTypes(); // Dodaj tę linię
                 }
             }
         }
@@ -173,7 +210,6 @@ namespace RC_GUI_WATS.ViewModels
             FileLoggingService fileLoggingService,
             string serverIp,
             string serverPort)
-        
         {
             _clientService = clientService;
             _limitsService = limitsService;
@@ -200,9 +236,11 @@ namespace RC_GUI_WATS.ViewModels
             
             // Initialize with default values
             QuickScopeTypeSelectedIndex = 0;
-            QuickLimitTypeSelectedIndex = 0;
             QuickLimitValue = "";
             RawMessagesText = "";
+            
+            // Initialize available limit types for default scope (ALL)
+            UpdateAvailableLimitTypes();
             
             // Initialize limits summary and display mode info
             UpdateLimitsSummary();
@@ -211,6 +249,75 @@ namespace RC_GUI_WATS.ViewModels
             
             // Log initialization
             _fileLoggingService.LogSettings("Settings tab initialized", $"Server: {_serverIp}:{_serverPort}");
+        }
+        
+        private void UpdateAvailableLimitTypes()
+        {
+            // Zapisz aktualnie wybraną wartość
+            LimitTypeInfo currentSelection = null;
+            if (QuickLimitTypeSelectedIndex >= 0 && QuickLimitTypeSelectedIndex < AvailableLimitTypes.Count)
+            {
+                currentSelection = AvailableLimitTypes[QuickLimitTypeSelectedIndex];
+            }
+
+            // Wyczyść obecne opcje
+            AvailableLimitTypes.Clear();
+
+            // Wybierz odpowiednią listę limitów
+            List<LimitTypeInfo> limitsToShow;
+            if (QuickScopeTypeSelectedIndex == 0) // Wszystkie instrumenty (ALL)
+            {
+                limitsToShow = _allInstrumentsLimits;
+            }
+            else // Inne zakresy
+            {
+                limitsToShow = _otherScopesLimits;
+            }
+
+            // Dodaj opcje do kolekcji
+            foreach (var limitInfo in limitsToShow)
+            {
+                AvailableLimitTypes.Add(limitInfo);
+            }
+
+            // Spróbuj przywrócić poprzednią selekcję lub wybierz pierwszy element
+            bool selectionRestored = false;
+            if (currentSelection != null)
+            {
+                for (int i = 0; i < AvailableLimitTypes.Count; i++)
+                {
+                    if (AvailableLimitTypes[i].Name == currentSelection.Name)
+                    {
+                        QuickLimitTypeSelectedIndex = i;
+                        selectionRestored = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!selectionRestored && AvailableLimitTypes.Count > 0)
+            {
+                QuickLimitTypeSelectedIndex = 0;
+            }
+        }
+
+        private void UpdateQuickScopeValue()
+        {
+            switch (QuickScopeTypeSelectedIndex)
+            {
+                case 0: // All instruments
+                    QuickScopeValue = "(ALL)";
+                    break;
+                case 1: // Instrument type  
+                    QuickScopeValue = "()";
+                    break;
+                case 2: // Instrument group
+                    QuickScopeValue = "[]";
+                    break;
+                case 3: // Single instrument
+                    QuickScopeValue = "";
+                    break;
+            }
         }
         
         private void OnLimitsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
@@ -324,26 +431,7 @@ namespace RC_GUI_WATS.ViewModels
             
             RawMessagesText += sb.ToString();
         }
-        
-        private void UpdateQuickScopeValue()
-        {
-            switch (QuickScopeTypeSelectedIndex)
-            {
-                case 0: // All instruments
-                    QuickScopeValue = "(ALL)";
-                    break;
-                case 1: // Instrument type
-                    QuickScopeValue = "()";
-                    break;
-                case 2: // Instrument group
-                    QuickScopeValue = "[]";
-                    break;
-                case 3: // Single instrument
-                    QuickScopeValue = "";
-                    break;
-            }
-        }
-        
+
         public async Task LoadControlHistoryAsync()
         {
             if (!_clientService.IsConnected)
@@ -562,7 +650,7 @@ namespace RC_GUI_WATS.ViewModels
                 return;
             }
             
-            if (QuickLimitTypeSelectedIndex < 0)
+            if (QuickLimitTypeSelectedIndex < 0 || QuickLimitTypeSelectedIndex >= AvailableLimitTypes.Count)
             {
                 var message = "Wybierz typ limitu";
                 MessageBox.Show(message, "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -580,16 +668,8 @@ namespace RC_GUI_WATS.ViewModels
             
             try
             {
-                // Create control string
-                string limitType = "";
-                switch (QuickLimitTypeSelectedIndex)
-                {
-                    case 0: limitType = "halt"; break;
-                    case 1: limitType = "maxOrderRate"; break;
-                    case 2: limitType = "maxTransaction"; break;
-                    case 3: limitType = "maxAbsShares"; break;
-                    case 4: limitType = "maxShortShares"; break;
-                }
+                // Get selected limit type
+                string limitType = AvailableLimitTypes[QuickLimitTypeSelectedIndex].Name;
                 
                 string controlString = $"{QuickScopeValue},{limitType},{QuickLimitValue}";
                 

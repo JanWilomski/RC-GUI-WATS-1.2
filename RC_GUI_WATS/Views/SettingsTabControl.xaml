@@ -80,35 +80,9 @@
                     <Style TargetType="DataGridRow">
                         <Setter Property="Background" Value="White"/>
                         <Style.Triggers>
-                            <!-- ALL instruments - light green background -->
                             <DataTrigger Binding="{Binding Scope}" Value="(ALL)">
                                 <Setter Property="Background" Value="#E8F5E8"/>
-                                <Setter Property="FontWeight" Value="Bold"/>
                             </DataTrigger>
-                            
-                            <!-- Common instrument types - light blue background -->
-                            <DataTrigger Binding="{Binding Scope}" Value="(EQUITY)">
-                                <Setter Property="Background" Value="#E8F0FF"/>
-                                <Setter Property="FontWeight" Value="SemiBold"/>
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding Scope}" Value="(BOND)">
-                                <Setter Property="Background" Value="#E8F0FF"/>
-                                <Setter Property="FontWeight" Value="SemiBold"/>
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding Scope}" Value="(FUTURE)">
-                                <Setter Property="Background" Value="#E8F0FF"/>
-                                <Setter Property="FontWeight" Value="SemiBold"/>
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding Scope}" Value="(OPTION)">
-                                <Setter Property="Background" Value="#E8F0FF"/>
-                                <Setter Property="FontWeight" Value="SemiBold"/>
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding Scope}" Value="(INDEX)">
-                                <Setter Property="Background" Value="#E8F0FF"/>
-                                <Setter Property="FontWeight" Value="SemiBold"/>
-                            </DataTrigger>
-                            
-                            <!-- Individual instruments (ISIN codes) - light gray background for Polish ISINs -->
                             <DataTrigger Binding="{Binding Scope}" Value="PLPKO0000016">
                                 <Setter Property="Background" Value="#F5F5F5"/>
                             </DataTrigger>
@@ -118,7 +92,7 @@
             </DataGrid>
         </Grid>
         
-        <!-- Quick limit change panel -->
+        <!-- Quick limit change panel - ZAKTUALIZOWANE -->
         <GroupBox Grid.Row="2" Header="Szybka zmiana limitów" Margin="5">
             <Grid Margin="5">
                 <Grid.RowDefinitions>
@@ -138,6 +112,7 @@
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Zakres:" VerticalAlignment="Center" Margin="0,0,5,0"/>
                 <ComboBox Grid.Row="0" Grid.Column="1" SelectedIndex="{Binding QuickScopeTypeSelectedIndex}" Margin="0,5">
                     <ComboBoxItem Content="Wszystkie instrumenty"/>
+                    <ComboBoxItem Content="Typ instrumentu"/>
                     <ComboBoxItem Content="Grupa instrumentów"/>
                     <ComboBoxItem Content="Pojedynczy instrument"/>
                 </ComboBox>
@@ -146,14 +121,14 @@
                 <TextBlock Grid.Row="0" Grid.Column="2" Text="Wartość:" VerticalAlignment="Center" Margin="5,0"/>
                 <TextBox Grid.Row="0" Grid.Column="3" Text="{Binding QuickScopeValue}" Margin="0,5"/>
                 
-                <!-- Limit type -->
+                <!-- Limit type - ZAKTUALIZOWANE do dynamicznego bindingu -->
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="Typ limitu:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                <ComboBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" SelectedIndex="{Binding QuickLimitTypeSelectedIndex}" Margin="0,5">
-                    <ComboBoxItem Content="halt"/>
-                    <ComboBoxItem Content="maxOrderRate"/>
-                    <ComboBoxItem Content="maxTransaction"/>
-                    <ComboBoxItem Content="maxAbsShares"/>
-                    <ComboBoxItem Content="maxShortShares"/>
+                <ComboBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" 
+                          SelectedIndex="{Binding QuickLimitTypeSelectedIndex}" 
+                          ItemsSource="{Binding AvailableLimitTypes}"
+                          DisplayMemberPath="Name"
+                          Margin="0,5">
+                    <!-- Opcje są teraz ładowane dynamicznie z ViewModel -->
                 </ComboBox>
                 
                 <!-- Limit value -->

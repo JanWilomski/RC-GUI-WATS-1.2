@@ -20,7 +20,8 @@ namespace RC_GUI_WATS
             new LimitTypeInfo("maxShortShares", "liczba", "Maksymalna pozycja krótka"),
             new LimitTypeInfo("maxCapital", "kwota", "Maksymalny kapitał"),
             new LimitTypeInfo("collars", "wartość", "Ograniczenia cenowe"),
-            new LimitTypeInfo("maxShortCapital", "kwota", "Maksymalny kapitał pozycji krótkiej")
+            new LimitTypeInfo("maxShortCapital", "kwota", "Maksymalny kapitał pozycji krótkiej"),
+            new LimitTypeInfo("capitalImpact", "liczba", "")
         };
         
         private readonly List<LimitTypeInfo> _otherScopesLimits = new List<LimitTypeInfo>
@@ -28,9 +29,10 @@ namespace RC_GUI_WATS
             new LimitTypeInfo("halt", "Y/N", "Zatrzymuje handel na wybranych instrumentach"),
             new LimitTypeInfo("maxTransaction", "procent", "Procent nominalnej wartości transakcji"),
             new LimitTypeInfo("maxShortCapital", "kwota", "Maksymalny kapitał pozycji krótkiej"),
-            new LimitTypeInfo("capitalImpact", "procent", "Wpływ na kapitał (tylko futures)"),
+            new LimitTypeInfo("capitalImpact", "procent", "Wpływ na kapitał"),
             new LimitTypeInfo("maxAbsShares", "liczba", "Maksymalna bezwzględna pozycja"),
-            new LimitTypeInfo("maxShortShares", "liczba", "Maksymalna pozycja krótka")
+            new LimitTypeInfo("maxShortShares", "liczba", "Maksymalna pozycja krótka"),
+            new LimitTypeInfo("collars", "wartość", "Ograniczenia cenowe"),
         };
         
         public AddLimitWindow()
@@ -175,10 +177,7 @@ namespace RC_GUI_WATS
                         LimitValueTextBox.Text = "500000";
                         break;
                     case "capitalImpact":
-                        LimitValueTextBox.Text = "15";
-                        break;
-                    default:
-                        LimitValueTextBox.Text = "";
+                        LimitValueTextBox.Text = "10";
                         break;
                 }
             }
@@ -190,46 +189,18 @@ namespace RC_GUI_WATS
         
         private void AddButton_Click(object sender, RoutedEventArgs e)
         {
-            // Walidacja
-            if (string.IsNullOrWhiteSpace(ScopeValueTextBox.Text))
+            var scopeValue = ScopeValueTextBox.Text.Trim();
+            
+            // Walidacja zakresu
+            if (string.IsNullOrWhiteSpace(scopeValue))
             {
                 MessageBox.Show("Podaj wartość zakresu", "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
             
-            if (LimitTypeComboBox.SelectedItem == null)
-            {
-                MessageBox.Show("Wybierz typ limitu", "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-            
-            if (string.IsNullOrWhiteSpace(LimitValueTextBox.Text))
-            {
-                MessageBox.Show("Podaj wartość limitu", "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-            
-            // Walidacja dla typu instrumentu
-            if (ScopeTypeComboBox.SelectedIndex == 1) // Typ instrumentu
-            {
-                string scopeValue = ScopeValueTextBox.Text.Trim();
-                if (!scopeValue.StartsWith("(") || !scopeValue.EndsWith(")"))
-                {
-                    MessageBox.Show("Typ instrumentu musi być w nawiasach okrągłych, np. (EQUITY)", "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return;
-                }
-                
-                if (scopeValue.Length <= 2) // Tylko nawiasy bez zawartości
-                {
-                    MessageBox.Show("Podaj nazwę typu instrumentu w nawiasach, np. (EQUITY)", "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return;
-                }
-            }
-            
-            // Walidacja dla grupy instrumentów
+            // Walidacja typu instrumentu dla grup
             if (ScopeTypeComboBox.SelectedIndex == 2) // Grupa instrumentów
             {
-                string scopeValue = ScopeValueTextBox.Text.Trim();
                 if (!scopeValue.StartsWith("[") || !scopeValue.EndsWith("]"))
                 {
                     MessageBox.Show("Grupa instrumentów musi być w nawiasach kwadratowych, np. [11*]", "Błąd", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -328,18 +299,5 @@ namespace RC_GUI_WATS
         }
     }
     
-    // Klasa pomocnicza do przechowywania informacji o typach limitów
-    public class LimitTypeInfo
-    {
-        public string Name { get; set; }
-        public string ValueFormat { get; set; }
-        public string Description { get; set; }
-        
-        public LimitTypeInfo(string name, string valueFormat, string description)
-        {
-            Name = name;
-            ValueFormat = valueFormat;
-            Description = description;
-        }
-    }
+    // USUNIĘTA LOKALNA KLASA LimitTypeInfo - teraz jest w Models/LimitTypeInfo.cs
 }
