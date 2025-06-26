@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("RC_GUI_WATS")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+73e74af3e0f63d0bebefb7f15854b8d8cf90db53")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7be45fc8780ec3c89b2385b8df22a8781c28f700")]
 [assembly: System.Reflection.AssemblyProductAttribute("RC_GUI_WATS")]
 [assembly: System.Reflection.AssemblyTitleAttribute("RC_GUI_WATS")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

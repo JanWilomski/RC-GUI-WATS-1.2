@@ -1,8 +1,7 @@
 {
   "version": 3,
   "targets": {
-    "net8.0-windows7.0": {},
-    "net8.0-windows7.0/win-x64": {}
+    "net8.0-windows7.0": {}
   },
   "libraries": {},
   "projectFileDependencyGroups": {
@@ -69,10 +68,6 @@
             "version": "[8.0.13, 8.0.13]"
           },
           {
-            "name": "Microsoft.AspNetCore.App.Runtime.win-x64",
-            "version": "[8.0.13, 8.0.13]"
-          },
-          {
             "name": "Microsoft.NETCore.App.Host.win-x64",
             "version": "[8.0.13, 8.0.13]"
           },
@@ -81,15 +76,7 @@
             "version": "[8.0.13, 8.0.13]"
           },
           {
-            "name": "Microsoft.NETCore.App.Runtime.win-x64",
-            "version": "[8.0.13, 8.0.13]"
-          },
-          {
             "name": "Microsoft.WindowsDesktop.App.Ref",
-            "version": "[8.0.13, 8.0.13]"
-          },
-          {
-            "name": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
             "version": "[8.0.13, 8.0.13]"
           }
         ],
@@ -102,11 +89,6 @@
           }
         },
         "runtimeIdentifierGraphPath": "C:\\Users\\janwil\\.dotnet\\sdk\\9.0.200/PortableRuntimeIdentifierGraph.json"
-      }
-    },
-    "runtimes": {
-      "win-x64": {
-        "#import": []
       }
     }
   }
