@@ -477,7 +477,8 @@
                           ItemsSource="{Binding OrderBook}"
                           CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True"
                           GridLinesVisibility="All" FontSize="10" RowHeight="20"
-                          LoadingRow="OrderBookDataGrid_LoadingRow">
+                          LoadingRow="OrderBookDataGrid_LoadingRow"
+                          MouseDoubleClick="OrderBookDataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="#" Width="30">
                             <DataGridTextColumn.Binding>

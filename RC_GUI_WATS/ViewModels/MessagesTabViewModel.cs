@@ -8,6 +8,7 @@ using System.Windows.Media;
 using RC_GUI_WATS.Commands;
 using RC_GUI_WATS.Models;
 using RC_GUI_WATS.Services;
+using RC_GUI_WATS.Views;
 
 namespace RC_GUI_WATS.ViewModels
 {
@@ -41,6 +42,8 @@ namespace RC_GUI_WATS.ViewModels
             get => _showOrderAdd;
             set { if (SetProperty(ref _showOrderAdd, value)) ApplyMessageFilters(); }
         }
+        
+        
 
         private bool _showOrderAddResponse = true;
         public bool ShowOrderAddResponse
@@ -287,6 +290,8 @@ namespace RC_GUI_WATS.ViewModels
         public RelayCommand SelectAllMessageTypesCommand { get; }
         public RelayCommand DeselectAllMessageTypesCommand { get; }
         public RelayCommand ResetMessageFiltersCommand { get; }
+        
+        public RelayCommand<OrderBookEntry> ShowOrderCcgMessagesCommand { get; }
 
         public MessagesTabViewModel(
             RcTcpClientService clientService,
@@ -332,6 +337,7 @@ namespace RC_GUI_WATS.ViewModels
             SelectAllMessageTypesCommand = new RelayCommand(SelectAllMessageTypes);
             DeselectAllMessageTypesCommand = new RelayCommand(DeselectAllMessageTypes);
             ResetMessageFiltersCommand = new RelayCommand(ResetMessageFilters);
+            ShowOrderCcgMessagesCommand = new RelayCommand<OrderBookEntry>(ShowOrderCcgMessages);
 
             // Initialize display
             UpdateCapitalDisplay();
@@ -368,11 +374,35 @@ namespace RC_GUI_WATS.ViewModels
 
             return passesTypeFilter;
         }
+        
+        private void ShowOrderCcgMessages(OrderBookEntry orderEntry)
+        {
+            if (orderEntry == null) return;
+    
+            try
+            {
+                var relatedMessages = _orderBookService.GetRelatedCcgMessages(orderEntry);
+        
+                var ccgMessagesWindow = new OrderBookCcgMessagesWindow(orderEntry, relatedMessages);
+                ccgMessagesWindow.Owner = System.Windows.Application.Current.MainWindow;
+                ccgMessagesWindow.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error showing CCG messages: {ex.Message}");
+                // Opcjonalnie można dodać MessageBox lub inne powiadomienie o błędzie
+            }
+        }
 
         private void ApplyMessageFilters()
         {
             _ccgMessagesView?.Refresh();
             UpdateFilteredMessageCount();
+        }
+        
+        public List<CcgMessage> GetRelatedCcgMessages(OrderBookEntry orderEntry)
+        {
+            return _orderBookService.GetRelatedCcgMessages(orderEntry);
         }
 
         private void UpdateFilteredMessageCount()

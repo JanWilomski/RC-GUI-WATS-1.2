@@ -771,5 +771,140 @@ namespace RC_GUI_WATS.Services
             
             return (total, active, filled, cancelled);
         }
+        public List<CcgMessage> GetRelatedCcgMessages(OrderBookEntry orderEntry)
+        {
+            var relatedMessages = new List<CcgMessage>();
+            
+            if (orderEntry == null)
+                return relatedMessages;
+            
+            try
+            {
+                var allMessages = _ccgMessagesService.CcgMessages.ToList();
+                
+                // Lista identyfikatorów do wyszukania
+                var searchIds = new HashSet<string>();
+                
+                // Dodaj OrderId jako string
+                searchIds.Add(orderEntry.OrderId.ToString());
+                
+                // Dodaj ClientOrderId jeśli istnieje
+                if (!string.IsNullOrEmpty(orderEntry.ClientOrderId))
+                {
+                    searchIds.Add(orderEntry.ClientOrderId);
+                }
+                
+                // Dodaj OrderIdReference jeśli istnieje
+                if (!string.IsNullOrEmpty(orderEntry.OrderIdReference))
+                {
+                    searchIds.Add(orderEntry.OrderIdReference);
+                }
+                
+                // Dodaj PublicOrderId jeśli istnieje
+                if (orderEntry.PublicOrderId.HasValue)
+                {
+                    searchIds.Add(orderEntry.PublicOrderId.Value.ToString());
+                }
+                
+                // Wyszukaj messages po ClientOrderId
+                foreach (var message in allMessages)
+                {
+                    if (!string.IsNullOrEmpty(message.ClientOrderId))
+                    {
+                        // Sprawdź czy ClientOrderId message'a pasuje do któregoś z naszych identyfikatorów
+                        if (searchIds.Contains(message.ClientOrderId))
+                        {
+                            relatedMessages.Add(message);
+                        }
+                    }
+                }
+                
+                // Dodatkowe filtrowanie po InstrumentId jeśli istnieje
+                if (orderEntry.InstrumentId.HasValue)
+                {
+                    var instrumentMessages = allMessages.Where(m => 
+                        m.InstrumentId == orderEntry.InstrumentId.Value).ToList();
+                    
+                    // Dodaj messages z tym samym instrumentem które mogą być powiązane czasowo
+                    var orderTime = orderEntry.CreatedTime;
+                    var timeWindow = TimeSpan.FromMinutes(5); // 5 minut przed i po
+                    
+                    var timeFilteredMessages = instrumentMessages.Where(m =>
+                        m.DateReceived >= orderTime.Subtract(timeWindow) &&
+                        m.DateReceived <= orderTime.Add(timeWindow) &&
+                        !relatedMessages.Contains(m)).ToList();
+                    
+                    // Sprawdź czy te messages są rzeczywiście powiązane
+                    foreach (var message in timeFilteredMessages)
+                    {
+                        // Sprawdź czy price i quantity są podobne
+                        if (IsMessageLikelyRelated(message, orderEntry))
+                        {
+                            relatedMessages.Add(message);
+                        }
+                    }
+                }
+                
+                // Posortuj messages chronologicznie
+                relatedMessages = relatedMessages
+                    .OrderBy(m => m.DateReceived)
+                    .ToList();
+                
+                System.Diagnostics.Debug.WriteLine($"Found {relatedMessages.Count} related CCG messages for OrderId {orderEntry.OrderId}");
+                
+                return relatedMessages;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error finding related CCG messages: {ex.Message}");
+                return relatedMessages;
+            }
+        }
+
+        /// <summary>
+        /// Sprawdza czy message jest prawdopodobnie powiązany z order entry na podstawie price/quantity
+        /// </summary>
+        private bool IsMessageLikelyRelated(CcgMessage message, OrderBookEntry orderEntry)
+        {
+            try
+            {
+                // Sprawdź price
+                if (message.Price.HasValue && orderEntry.Price.HasValue)
+                {
+                    if (Math.Abs(message.Price.Value - orderEntry.Price.Value) < 0.0001m)
+                    {
+                        return true;
+                    }
+                }
+                
+                // Sprawdź quantity
+                if (message.Quantity > 0 && orderEntry.OriginalQuantity > 0)
+                {
+                    if (message.Quantity == orderEntry.OriginalQuantity || 
+                        message.Quantity == orderEntry.FilledQuantity ||
+                        message.Quantity == orderEntry.CurrentQuantity)
+                    {
+                        return true;
+                    }
+                }
+                
+                // Sprawdź side
+                if (!string.IsNullOrEmpty(message.Side) && !string.IsNullOrEmpty(orderEntry.Side))
+                {
+                    if (string.Equals(message.Side, orderEntry.Side, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+                
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+        
+        
     }
 }

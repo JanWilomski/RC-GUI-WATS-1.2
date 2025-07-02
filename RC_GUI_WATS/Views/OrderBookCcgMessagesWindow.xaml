@@ -1,0 +1,186 @@
+﻿<!-- Views/OrderBookCcgMessagesWindow.xaml -->
+<Window x:Class="RC_GUI_WATS.Views.OrderBookCcgMessagesWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="CCG Messages for Order" Height="600" Width="1000"
+        WindowStartupLocation="CenterOwner" ResizeMode="CanResize">
+    
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- Header with order information -->
+        <Grid Grid.Row="0" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            
+            <TextBlock Grid.Column="0" Text="Order Details:" FontWeight="Bold" FontSize="14" 
+                       VerticalAlignment="Center" Margin="0,0,10,0"/>
+            
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <TextBlock Text="OrderId: " FontWeight="Bold"/>
+                <TextBlock Name="OrderIdText" Text="{Binding OrderId}" Margin="0,0,15,0"/>
+                
+                <TextBlock Text="ClientOrderId: " FontWeight="Bold"/>
+                <TextBlock Name="ClientOrderIdText" Text="{Binding ClientOrderIdDisplay}" Margin="0,0,15,0"/>
+                
+                <TextBlock Text="Status: " FontWeight="Bold"/>
+                <TextBlock Name="StatusText" Text="{Binding Status}" Margin="0,0,15,0"/>
+                
+                <TextBlock Text="Instrument: " FontWeight="Bold"/>
+                <TextBlock Name="InstrumentText" Text="{Binding InstrumentDisplay}" Margin="0,0,15,0"/>
+            </StackPanel>
+        </Grid>
+        
+        <!-- Statistics -->
+        <Grid Grid.Row="1" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            
+            <TextBlock Grid.Column="0" Text="CCG Messages:" FontWeight="Bold" 
+                       VerticalAlignment="Center" Margin="0,0,10,0"/>
+            
+            <TextBlock Grid.Column="1" Name="StatisticsText" 
+                       VerticalAlignment="Center" FontSize="11" Foreground="DarkBlue"/>
+        </Grid>
+        
+        <!-- CCG Messages DataGrid -->
+        <DataGrid Grid.Row="2" Name="CcgMessagesDataGrid" 
+                  AutoGenerateColumns="False" 
+                  CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True"
+                  GridLinesVisibility="All" FontSize="10" RowHeight="22"
+                  LoadingRow="CcgMessagesDataGrid_LoadingRow"
+                  MouseDoubleClick="CcgMessagesDataGrid_MouseDoubleClick">
+            
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="#" Width="30">
+                    <DataGridTextColumn.Binding>
+                        <Binding RelativeSource="{RelativeSource FindAncestor, AncestorType={x:Type DataGridRow}}" 
+                                Path="Header"/>
+                    </DataGridTextColumn.Binding>
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                            <Setter Property="FontSize" Value="9"/>
+                            <Setter Property="Foreground" Value="Gray"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                
+                <DataGridTextColumn Header="Message Type" Binding="{Binding Name}" Width="140">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="FontWeight" Value="Bold"/>
+                            <Style.Triggers>
+                                <Trigger Property="Text" Value="OrderAdd">
+                                    <Setter Property="Foreground" Value="Blue"/>
+                                </Trigger>
+                                <Trigger Property="Text" Value="OrderAddResponse">
+                                    <Setter Property="Foreground" Value="Green"/>
+                                </Trigger>
+                                <Trigger Property="Text" Value="OrderModify">
+                                    <Setter Property="Foreground" Value="Orange"/>
+                                </Trigger>
+                                <Trigger Property="Text" Value="OrderModifyResponse">
+                                    <Setter Property="Foreground" Value="DarkOrange"/>
+                                </Trigger>
+                                <Trigger Property="Text" Value="OrderCancel">
+                                    <Setter Property="Foreground" Value="Red"/>
+                                </Trigger>
+                                <Trigger Property="Text" Value="OrderCancelResponse">
+                                    <Setter Property="Foreground" Value="DarkRed"/>
+                                </Trigger>
+                                <Trigger Property="Text" Value="Trade">
+                                    <Setter Property="Foreground" Value="Purple"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                
+                <DataGridTextColumn Header="Date Received" Binding="{Binding DateReceivedDisplay}" Width="90"/>
+                
+                <DataGridTextColumn Header="Transact Time" Binding="{Binding TransactTimeDisplay}" Width="90"/>
+                
+                <DataGridTextColumn Header="Price" Binding="{Binding PriceDisplay}" Width="80">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                
+                <DataGridTextColumn Header="Quantity" Binding="{Binding QuantityDisplay}" Width="80">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                
+                <DataGridTextColumn Header="Side" Binding="{Binding Side}" Width="80">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                            <Style.Triggers>
+                                <Trigger Property="Text" Value="Buy">
+                                    <Setter Property="Foreground" Value="Green"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                </Trigger>
+                                <Trigger Property="Text" Value="Sell">
+                                    <Setter Property="Foreground" Value="Red"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                
+                <DataGridTextColumn Header="ClientOrderId" Binding="{Binding ClientOrderId}" Width="120"/>
+                
+                <DataGridTextColumn Header="InstrumentId" Binding="{Binding InstrumentId}" Width="90"/>
+                
+                <DataGridTextColumn Header="Raw Data" Binding="{Binding RawDataShort}" Width="*">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="FontFamily" Value="Consolas"/>
+                            <Setter Property="FontSize" Value="8"/>
+                            <Setter Property="ToolTip" Value="{Binding RawDataHex}"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+            </DataGrid.Columns>
+            
+            <!-- Row styling -->
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Setter Property="Background" Value="White"/>
+                    <Style.Triggers>
+                        <!-- Alternate row colors -->
+                        <Trigger Property="AlternationIndex" Value="1">
+                            <Setter Property="Background" Value="#F9F9F9"/>
+                        </Trigger>
+                        
+                        <!-- Mouse over -->
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="#E0E0E0"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
+        </DataGrid>
+        
+        <!-- Buttons -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button Content="Close" Width="80" Height="25" Click="CloseButton_Click" IsCancel="True"/>
+        </StackPanel>
+    </Grid>
+</Window>
