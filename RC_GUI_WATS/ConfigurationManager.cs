@@ -17,7 +17,7 @@ namespace RC_GUI_WATS.Services
         public static bool AutoConnect => bool.Parse(GetConfigValue("AutoConnect", "false"));
 
         // Helper method to get configuration value with fallback
-        private static string GetConfigValue(string key, string defaultValue)
+        public static string GetConfigValue(string key, string defaultValue)
         {
             string value = ConfigurationManager.AppSettings[key];
             return !string.IsNullOrEmpty(value) ? value : defaultValue;

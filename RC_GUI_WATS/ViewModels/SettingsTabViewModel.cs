@@ -17,6 +17,8 @@ namespace RC_GUI_WATS.ViewModels
         private readonly LimitsService _limitsService;
         private readonly ConfigurationService _configService;
         private readonly FileLoggingService _fileLoggingService;
+        private readonly ThemeService _themeService;
+        private readonly SettingsService _settingsService;
         
         // Definicje typów limitów dla różnych zakresów (jak w AddLimitWindow)
         private readonly List<LimitTypeInfo> _allInstrumentsLimits = new List<LimitTypeInfo>
@@ -202,19 +204,24 @@ namespace RC_GUI_WATS.ViewModels
         public RelayCommand SaveLimitsCommand { get; }
         public RelayCommand ApplyQuickLimitCommand { get; }
         public RelayCommand OpenLogFileCommand { get; }
+        public RelayCommand OpenSettingsWindowCommand { get; }
 
         public SettingsTabViewModel(
             RcTcpClientService clientService,
             LimitsService limitsService,
             ConfigurationService configService,
             FileLoggingService fileLoggingService,
+            ThemeService themeService,
             string serverIp,
-            string serverPort)
+            string serverPort,
+            Services.SettingsService settingsService)
         {
             _clientService = clientService;
             _limitsService = limitsService;
             _configService = configService;
             _fileLoggingService = fileLoggingService;
+            _themeService = themeService;
+            _settingsService = settingsService;
             
             // Initialize properties from configuration
             _serverIp = serverIp;
@@ -227,6 +234,7 @@ namespace RC_GUI_WATS.ViewModels
             SaveLimitsCommand = new RelayCommand(SaveLimits);
             ApplyQuickLimitCommand = new RelayCommand(ApplyQuickLimit);
             OpenLogFileCommand = new RelayCommand(OpenLogFile);
+            OpenSettingsWindowCommand = new RelayCommand(OpenSettingsWindow);
             
             // Subscribe to message events
             _clientService.MessageReceived += OnMessageReceived;
@@ -761,6 +769,13 @@ namespace RC_GUI_WATS.ViewModels
             {
                 _fileLoggingService.LogError("Failed to request control history update", ex);
             }
+        }
+
+        private void OpenSettingsWindow()
+        {
+            var settingsWindowViewModel = new ViewModels.SettingsWindowViewModel(_themeService, _configService);
+            var settingsWindow = new Views.SettingsWindow(settingsWindowViewModel);
+            settingsWindow.Show();
         }
     }
 }

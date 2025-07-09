@@ -3,7 +3,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d">
+             mc:Ignorable="d"
+             Background="{DynamicResource PrimaryBackgroundColor}"
+             Foreground="{DynamicResource PrimaryForegroundColor}">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -37,14 +39,24 @@
             </Grid.RowDefinitions>
             
             <!-- Buttons -->
-            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,5">
-                <Button Content="Dodaj limit" Command="{Binding AddLimitCommand}"
-                        Margin="0,0,5,0" Padding="5,2"/>
-                <Button Content="Odśwież limity" Command="{Binding RefreshLimitsCommand}"
-                        Margin="0,0,5,0" Padding="5,2"/>
-                <Button Content="Zapisz limity" Command="{Binding SaveLimitsCommand}"
-                        Margin="0,0,5,0" Padding="5,2"/>
-            </StackPanel>
+            <Grid Grid.Row="0" Margin="0,5">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <StackPanel Orientation="Horizontal" Grid.Column="0">
+                    <Button Content="Dodaj limit" Command="{Binding AddLimitCommand}"
+                            Margin="0,0,5,0" Padding="5,2"/>
+                    <Button Content="Odśwież limity" Command="{Binding RefreshLimitsCommand}"
+                            Margin="0,0,5,0" Padding="5,2"/>
+                    <Button Content="Zapisz limity" Command="{Binding SaveLimitsCommand}"
+                            Margin="0,0,5,0" Padding="5,2"/>
+                </StackPanel>
+
+                <Button Grid.Column="1" Content="Settings" Command="{Binding OpenSettingsWindowCommand}" 
+                        Padding="5,2" HorizontalAlignment="Right"/>
+            </Grid>
             
             <!-- Display mode selection -->
             <GroupBox Grid.Row="1" Header="Sposób wyświetlania limitów" Margin="0,5">

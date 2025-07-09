@@ -14,6 +14,8 @@ namespace RC_GUI_WATS.ViewModels
         private readonly ConfigurationService _configService;
         private readonly HeartbeatMonitorService _heartbeatMonitorService;
         private readonly FileLoggingService _fileLoggingService;
+        private readonly ThemeService _themeService;
+        private readonly SettingsService _settingsService;
         
         // ServerIP i ServerPort z ConfigurationService
         private string _serverIp;
@@ -81,21 +83,25 @@ namespace RC_GUI_WATS.ViewModels
             HeartbeatMonitorService heartbeatMonitorService,
             CcgMessagesService ccgMessagesService,
             OrderBookService orderBookService, // Add OrderBookService parameter
-            FileLoggingService fileLoggingService)
+            FileLoggingService fileLoggingService,
+            ThemeService themeService,
+            SettingsService settingsService)
         {
             _clientService = clientService;
             _capitalService = capitalService;
             _configService = configService;
             _heartbeatMonitorService = heartbeatMonitorService;
             _fileLoggingService = fileLoggingService;
+            _themeService = themeService;
+            _settingsService = settingsService;
             
             // Załaduj wartości z konfiguracji
             _serverIp = _configService.ServerIP;
             _serverPort = _configService.ServerPort.ToString();
             
             // Initialize tab ViewModels - pass OrderBookService to MessagesTab
-            MessagesTab = new MessagesTabViewModel(clientService, positionsService, capitalService, heartbeatMonitorService, ccgMessagesService, orderBookService);
-            SettingsTab = new SettingsTabViewModel(clientService, limitsService, configService, fileLoggingService, _serverIp, _serverPort);
+            MessagesTab = new MessagesTabViewModel(clientService, positionsService, capitalService, heartbeatMonitorService, ccgMessagesService, orderBookService, configService, _settingsService);
+            SettingsTab = new SettingsTabViewModel(clientService, limitsService, configService, fileLoggingService, _themeService, _serverIp, _serverPort, _settingsService);
             FiltersTab = new FiltersTabViewModel();
             InstrumentsTab = new InstrumentsTabViewModel(instrumentsService, _configService.InstrumentsFilePath);
             

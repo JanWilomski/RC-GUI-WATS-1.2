@@ -314,11 +314,11 @@
                                 <Setter Property="HorizontalAlignment" Value="Center"/>
                                 <Style.Triggers>
                                     <Trigger Property="Text" Value="Buy">
-                                        <Setter Property="Foreground" Value="Green"/>
+                                        <Setter Property="Foreground" Value="{Binding DataContext.ConfigurationService.Color_OrderBook_Side_Buy, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                         <Setter Property="FontWeight" Value="Bold"/>
                                     </Trigger>
                                     <Trigger Property="Text" Value="Sell">
-                                        <Setter Property="Foreground" Value="Red"/>
+                                        <Setter Property="Foreground" Value="{Binding DataContext.ConfigurationService.Color_OrderBook_Side_Sell, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                         <Setter Property="FontWeight" Value="Bold"/>
                                     </Trigger>
                                     <Trigger Property="Text" Value="Trade">
@@ -359,81 +359,81 @@
                             
                             <!-- Error messages - highest priority -->
                             <DataTrigger Binding="{Binding Header}" Value="ERROR">
-                                <Setter Property="Background" Value="Yellow"/>
+                                <Setter Property="Background" Value="{Binding DataContext.ConfigurationService.Color_Ccg_Error, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                 <Setter Property="FontWeight" Value="Bold"/>
                             </DataTrigger>
                             
                             <!-- MassQuote messages - light purple -->
                             <DataTrigger Binding="{Binding Name}" Value="MassQuote">
-                                <Setter Property="Background" Value="#E6E6FA"/>
+                                <Setter Property="Background" Value="{Binding DataContext.ConfigurationService.Color_Ccg_MassQuote, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                 <Setter Property="FontWeight" Value="SemiBold"/>
                             </DataTrigger>
                             
                             <!-- MassQuoteResponse - light magenta -->
                             <DataTrigger Binding="{Binding Name}" Value="MassQuoteResponse">
-                                <Setter Property="Background" Value="#F0E6FF"/>
+                                <Setter Property="Background" Value="{Binding DataContext.ConfigurationService.Color_Ccg_MassQuoteResponse, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                             </DataTrigger>
                             
                             <!-- OrderAdd - bright green -->
                             <DataTrigger Binding="{Binding Name}" Value="OrderAdd">
-                                <Setter Property="Background" Value="LawnGreen"/>
+                                <Setter Property="Background" Value="{Binding DataContext.ConfigurationService.Color_Ccg_OrderAdd, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                             </DataTrigger>
                             
                             <!-- OrderAddResponse - light green -->
                             <DataTrigger Binding="{Binding Name}" Value="OrderAddResponse">
-                                <Setter Property="Background" Value="#98FB98"/>
+                                <Setter Property="Background" Value="{Binding DataContext.ConfigurationService.Color_Ccg_OrderAddResponse, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                             </DataTrigger>
                             
                             <!-- Trade - light blue -->
                             <DataTrigger Binding="{Binding Name}" Value="Trade">
-                                <Setter Property="Background" Value="#ADD8E6"/>
+                                <Setter Property="Background" Value="{Binding DataContext.ConfigurationService.Color_Ccg_Trade, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                 <Setter Property="FontWeight" Value="SemiBold"/>
                             </DataTrigger>
                             
                             <!-- Cancel messages - light coral -->
                             <DataTrigger Binding="{Binding Name}" Value="OrderCancel">
-                                <Setter Property="Background" Value="Red"/>
+                                <Setter Property="Background" Value="{Binding DataContext.ConfigurationService.Color_Ccg_OrderCancel, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding Name}" Value="OrderCancelResponse">
-                                <Setter Property="Background" Value="#F08080"/>
+                                <Setter Property="Background" Value="{Binding DataContext.ConfigurationService.Color_Ccg_OrderCancelResponse, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                             </DataTrigger>
                             
                             <!-- Modify messages - light yellow -->
                             <DataTrigger Binding="{Binding Name}" Value="OrderModify">
-                                <Setter Property="Background" Value="#FFFFE0"/>
+                                <Setter Property="Background" Value="{Binding DataContext.ConfigurationService.Color_Ccg_OrderModify, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding Name}" Value="OrderModifyResponse">
-                                <Setter Property="Background" Value="#FFFFE0"/>
+                                <Setter Property="Background" Value="{Binding DataContext.ConfigurationService.Color_Ccg_OrderModifyResponse, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                             </DataTrigger>
                             
                             <!-- Mass Cancel messages - darker coral -->
                             <DataTrigger Binding="{Binding Name}" Value="OrderMassCancel">
-                                <Setter Property="Background" Value="#FFB6C1"/>
+                                <Setter Property="Background" Value="{Binding DataContext.ConfigurationService.Color_Ccg_OrderMassCancel, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding Name}" Value="OrderMassCancelResponse">
-                                <Setter Property="Background" Value="#FFB6C1"/>
+                                <Setter Property="Background" Value="{Binding DataContext.ConfigurationService.Color_Ccg_OrderMassCancelResponse, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                             </DataTrigger>
                             
                             <!-- Reject - pink -->
                             <DataTrigger Binding="{Binding Name}" Value="Reject">
-                                <Setter Property="Background" Value="#FFC0CB"/>
+                                <Setter Property="Background" Value="{Binding DataContext.ConfigurationService.Color_Ccg_Reject, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                 <Setter Property="FontWeight" Value="Bold"/>
                             </DataTrigger>
                             
                             <!-- Login messages - orange (suspicious) -->
                             <DataTrigger Binding="{Binding Name}" Value="Login">
-                                <Setter Property="Background" Value="#FFA500"/>
+                                <Setter Property="Background" Value="{Binding DataContext.ConfigurationService.Color_Ccg_Login, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding Name}" Value="LoginResponse">
-                                <Setter Property="Background" Value="#FFA500"/>
+                                <Setter Property="Background" Value="{Binding DataContext.ConfigurationService.Color_Ccg_LoginResponse, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                             </DataTrigger>
                             
                             <!-- Trade Capture Reports - light cyan -->
                             <DataTrigger Binding="{Binding Name}" Value="TradeCaptureReportSingle">
-                                <Setter Property="Background" Value="#E0FFFF"/>
+                                <Setter Property="Background" Value="{Binding DataContext.ConfigurationService.Color_Ccg_TradeCaptureReportSingle, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding Name}" Value="TradeCaptureReportDual">
-                                <Setter Property="Background" Value="#E0FFFF"/>
+                                <Setter Property="Background" Value="{Binding DataContext.ConfigurationService.Color_Ccg_TradeCaptureReportDual, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>
@@ -512,10 +512,10 @@
                                     <Setter Property="FontWeight" Value="Bold"/>
                                     <Style.Triggers>
                                         <Trigger Property="Text" Value="Buy">
-                                            <Setter Property="Foreground" Value="Green"/>
+                                            <Setter Property="Foreground" Value="{Binding DataContext.ConfigurationService.Color_OrderBook_Side_Buy, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                         </Trigger>
                                         <Trigger Property="Text" Value="Sell">
-                                            <Setter Property="Foreground" Value="Red"/>
+                                            <Setter Property="Foreground" Value="{Binding DataContext.ConfigurationService.Color_OrderBook_Side_Sell, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                         </Trigger>
                                     </Style.Triggers>
                                 </Style>
@@ -633,28 +633,28 @@
                             <Style.Triggers>
                                 <!-- Active orders - light blue -->
                                 <DataTrigger Binding="{Binding Status}" Value="New">
-                                    <Setter Property="Background" Value="#E6F3FF"/>
+                                    <Setter Property="Background" Value="{Binding DataContext.ConfigurationService.Color_OrderBook_Status_New, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                 </DataTrigger>
                                 
                                 <!-- Partially filled - light yellow -->
                                 <DataTrigger Binding="{Binding Status}" Value="PartiallyFilled">
-                                    <Setter Property="Background" Value="#FFFACD"/>
+                                    <Setter Property="Background" Value="{Binding DataContext.ConfigurationService.Color_OrderBook_Status_PartiallyFilled, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                 </DataTrigger>
                                 
                                 <!-- Filled - light green -->
                                 <DataTrigger Binding="{Binding Status}" Value="Filled">
-                                    <Setter Property="Background" Value="#E6FFE6"/>
+                                    <Setter Property="Background" Value="{Binding DataContext.ConfigurationService.Color_OrderBook_Status_Filled, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                 </DataTrigger>
                                 
                                 <!-- Cancelled - light gray -->
                                 <DataTrigger Binding="{Binding Status}" Value="Cancelled">
-                                    <Setter Property="Background" Value="#F0F0F0"/>
+                                    <Setter Property="Background" Value="{Binding DataContext.ConfigurationService.Color_OrderBook_Status_Cancelled, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                     <Setter Property="Foreground" Value="Gray"/>
                                 </DataTrigger>
                                 
                                 <!-- Rejected - light red -->
                                 <DataTrigger Binding="{Binding Status}" Value="Rejected">
-                                    <Setter Property="Background" Value="#FFE6E6"/>
+                                    <Setter Property="Background" Value="{Binding DataContext.ConfigurationService.Color_OrderBook_Status_Rejected, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                 </DataTrigger>
                                 
                                 <!-- Mouse over -->

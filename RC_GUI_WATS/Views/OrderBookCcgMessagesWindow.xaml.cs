@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using RC_GUI_WATS.Models;
+using RC_GUI_WATS.Services;
 
 namespace RC_GUI_WATS.Views
 {
@@ -12,13 +13,15 @@ namespace RC_GUI_WATS.Views
     {
         private readonly OrderBookEntry _orderEntry;
         private readonly List<CcgMessage> _relatedMessages;
+        public ConfigurationService ConfigurationService { get; } 
 
-        public OrderBookCcgMessagesWindow(OrderBookEntry orderEntry, List<CcgMessage> relatedMessages)
+        public OrderBookCcgMessagesWindow(OrderBookEntry orderEntry, List<CcgMessage> relatedMessages, ConfigurationService configurationService)
         {
             InitializeComponent();
             
             _orderEntry = orderEntry;
             _relatedMessages = relatedMessages;
+            ConfigurationService = configurationService;
             
             InitializeWindow();
         }

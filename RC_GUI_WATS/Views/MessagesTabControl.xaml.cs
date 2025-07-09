@@ -57,7 +57,7 @@ namespace RC_GUI_WATS.Views
                         var relatedMessages = viewModel.GetRelatedCcgMessages(selectedOrder);
                 
                         // Otwórz okno z CCG messages
-                        var ccgMessagesWindow = new OrderBookCcgMessagesWindow(selectedOrder, relatedMessages);
+                        var ccgMessagesWindow = new OrderBookCcgMessagesWindow(selectedOrder, relatedMessages, viewModel.ConfigurationService);
                         ccgMessagesWindow.Owner = System.Windows.Application.Current.MainWindow;
                         ccgMessagesWindow.ShowDialog();
                     }

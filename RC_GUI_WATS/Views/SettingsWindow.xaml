@@ -1,0 +1,137 @@
+<Window x:Class="RC_GUI_WATS.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Ustawienia" Height="600" Width="800"
+        Background="{DynamicResource PrimaryBackgroundColor}"
+        Foreground="{DynamicResource PrimaryForegroundColor}">
+    <Grid Margin="10">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <GroupBox Header="Motyw aplikacji">
+                    <StackPanel Margin="5">
+                        <RadioButton Content="Jasny" IsChecked="{Binding IsLightTheme}" Margin="0,0,0,5"/>
+                        <RadioButton Content="Ciemny" IsChecked="{Binding IsDarkTheme}"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="Kolory wiadomości CCG" Margin="0,10,0,0">
+                    <Grid Margin="5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Error:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding ColorCcgError}" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="MassQuote:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding ColorCcgMassQuote}" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="MassQuoteResponse:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding ColorCcgMassQuoteResponse}" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="OrderAdd:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ColorCcgOrderAdd}" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="OrderAddResponse:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding ColorCcgOrderAddResponse}" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Trade:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding ColorCcgTrade}" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="6" Grid.Column="0" Text="OrderCancel:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding ColorCcgOrderCancel}" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="7" Grid.Column="0" Text="OrderCancelResponse:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding ColorCcgOrderCancelResponse}" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="8" Grid.Column="0" Text="OrderModify:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox Grid.Row="8" Grid.Column="1" Text="{Binding ColorCcgOrderModify}" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="9" Grid.Column="0" Text="OrderModifyResponse:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox Grid.Row="9" Grid.Column="1" Text="{Binding ColorCcgOrderModifyResponse}" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="10" Grid.Column="0" Text="OrderMassCancel:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox Grid.Row="10" Grid.Column="1" Text="{Binding ColorCcgOrderMassCancel}" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="11" Grid.Column="0" Text="OrderMassCancelResponse:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox Grid.Row="11" Grid.Column="1" Text="{Binding ColorCcgOrderMassCancelResponse}" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="12" Grid.Column="0" Text="Reject:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox Grid.Row="12" Grid.Column="1" Text="{Binding ColorCcgReject}" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="13" Grid.Column="0" Text="Login:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox Grid.Row="13" Grid.Column="1" Text="{Binding ColorCcgLogin}" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="14" Grid.Column="0" Text="LoginResponse:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox Grid.Row="14" Grid.Column="1" Text="{Binding ColorCcgLoginResponse}" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="15" Grid.Column="0" Text="TradeCaptureReportSingle:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox Grid.Row="15" Grid.Column="1" Text="{Binding ColorCcgTradeCaptureReportSingle}" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="16" Grid.Column="0" Text="TradeCaptureReportDual:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox Grid.Row="16" Grid.Column="1" Text="{Binding ColorCcgTradeCaptureReportDual}" Margin="0,2"/>
+                    </Grid>
+                </GroupBox>
+
+                <GroupBox Header="Kolory Order Book" Margin="0,10,0,0">
+                    <Grid Margin="5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Status New:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding ColorOrderBookStatusNew}" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Status PartiallyFilled:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding ColorOrderBookStatusPartiallyFilled}" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Status Filled:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding ColorOrderBookStatusFilled}" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Status Cancelled:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ColorOrderBookStatusCancelled}" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Status Rejected:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding ColorOrderBookStatusRejected}" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Side Buy:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding ColorOrderBookSideBuy}" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="6" Grid.Column="0" Text="Side Sell:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding ColorOrderBookSideSell}" Margin="0,2"/>
+                    </Grid>
+                </GroupBox>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Window>

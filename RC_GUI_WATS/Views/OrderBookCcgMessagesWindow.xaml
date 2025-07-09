@@ -81,25 +81,25 @@
                             <Setter Property="FontWeight" Value="Bold"/>
                             <Style.Triggers>
                                 <Trigger Property="Text" Value="OrderAdd">
-                                    <Setter Property="Foreground" Value="Blue"/>
+                                    <Setter Property="Foreground" Value="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=ConfigurationService.Color_Ccg_OrderAdd}"/>
                                 </Trigger>
                                 <Trigger Property="Text" Value="OrderAddResponse">
-                                    <Setter Property="Foreground" Value="Green"/>
+                                    <Setter Property="Foreground" Value="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=ConfigurationService.Color_Ccg_OrderAddResponse}"/>
                                 </Trigger>
                                 <Trigger Property="Text" Value="OrderModify">
-                                    <Setter Property="Foreground" Value="Orange"/>
+                                    <Setter Property="Foreground" Value="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=ConfigurationService.Color_Ccg_OrderModify}"/>
                                 </Trigger>
                                 <Trigger Property="Text" Value="OrderModifyResponse">
-                                    <Setter Property="Foreground" Value="DarkOrange"/>
+                                    <Setter Property="Foreground" Value="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=ConfigurationService.Color_Ccg_OrderModifyResponse}"/>
                                 </Trigger>
                                 <Trigger Property="Text" Value="OrderCancel">
-                                    <Setter Property="Foreground" Value="Red"/>
+                                    <Setter Property="Foreground" Value="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=ConfigurationService.Color_Ccg_OrderCancel}"/>
                                 </Trigger>
                                 <Trigger Property="Text" Value="OrderCancelResponse">
-                                    <Setter Property="Foreground" Value="DarkRed"/>
+                                    <Setter Property="Foreground" Value="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=ConfigurationService.Color_Ccg_OrderCancelResponse}"/>
                                 </Trigger>
                                 <Trigger Property="Text" Value="Trade">
-                                    <Setter Property="Foreground" Value="Purple"/>
+                                    <Setter Property="Foreground" Value="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=ConfigurationService.Color_Ccg_Trade}"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
@@ -132,11 +132,11 @@
                             <Setter Property="HorizontalAlignment" Value="Center"/>
                             <Style.Triggers>
                                 <Trigger Property="Text" Value="Buy">
-                                    <Setter Property="Foreground" Value="Green"/>
+                                    <Setter Property="Foreground" Value="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=ConfigurationService.Color_OrderBook_Side_Buy}"/>
                                     <Setter Property="FontWeight" Value="Bold"/>
                                 </Trigger>
                                 <Trigger Property="Text" Value="Sell">
-                                    <Setter Property="Foreground" Value="Red"/>
+                                    <Setter Property="Foreground" Value="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=ConfigurationService.Color_OrderBook_Side_Sell}"/>
                                     <Setter Property="FontWeight" Value="Bold"/>
                                 </Trigger>
                             </Style.Triggers>

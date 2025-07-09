@@ -61,3 +61,8 @@ C:\Users\janwil\Documents\RC GUI WATS 1.2\RC_GUI_WATS\obj\Debug\net8.0-windows\V
 C:\Users\janwil\Documents\RC GUI WATS 1.2\RC_GUI_WATS\obj\Debug\net8.0-windows\Views\CcgMessageDetailsWindow.g.cs
 C:\Users\janwil\Documents\RC GUI WATS 1.2\RC_GUI_WATS\obj\Debug\net8.0-windows\Views\OrderBookCcgMessagesWindow.baml
 C:\Users\janwil\Documents\RC GUI WATS 1.2\RC_GUI_WATS\obj\Debug\net8.0-windows\Views\OrderBookCcgMessagesWindow.g.cs
+C:\Users\janwil\Documents\RC GUI WATS 1.2\RC_GUI_WATS\obj\Debug\net8.0-windows\Views\SettingsWindow.baml
+C:\Users\janwil\Documents\RC GUI WATS 1.2\RC_GUI_WATS\obj\Debug\net8.0-windows\Views\SettingsWindow.g.cs
+C:\Users\janwil\Documents\RC GUI WATS 1.2\RC_GUI_WATS\obj\Debug\net8.0-windows\Themes\DarkTheme.baml
+C:\Users\janwil\Documents\RC GUI WATS 1.2\RC_GUI_WATS\obj\Debug\net8.0-windows\Themes\LightTheme.baml
+C:\Users\janwil\Documents\RC GUI WATS 1.2\RC_GUI_WATS\obj\Debug\net8.0-windows\App.baml

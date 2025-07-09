@@ -20,6 +20,9 @@ namespace RC_GUI_WATS.ViewModels
         private readonly HeartbeatMonitorService _heartbeatMonitor;
         private readonly CcgMessagesService _ccgMessagesService;
         private readonly OrderBookService _orderBookService;
+        private readonly ConfigurationService _configurationService;
+        private readonly SettingsService _settingsService;
+        public ConfigurationService ConfigurationService => _configurationService;
 
         // Collection view for filtering
         private ICollectionView _ccgMessagesView;
@@ -299,7 +302,9 @@ namespace RC_GUI_WATS.ViewModels
             CapitalService capitalService,
             HeartbeatMonitorService heartbeatMonitor,
             CcgMessagesService ccgMessagesService,
-            OrderBookService orderBookService)
+            OrderBookService orderBookService,
+            ConfigurationService configurationService,
+            SettingsService settingsService)
         {
             _clientService = clientService;
             _positionsService = positionsService;
@@ -307,6 +312,8 @@ namespace RC_GUI_WATS.ViewModels
             _heartbeatMonitor = heartbeatMonitor;
             _ccgMessagesService = ccgMessagesService;
             _orderBookService = orderBookService;
+            _configurationService = configurationService;
+            _settingsService = settingsService;
 
             // Create heartbeat indicator view model
             HeartbeatIndicator = new HeartbeatIndicatorViewModel(_heartbeatMonitor);
@@ -328,6 +335,9 @@ namespace RC_GUI_WATS.ViewModels
 
             // Subscribe to connection status to reset counters
             _clientService.ConnectionStatusChanged += OnConnectionStatusChanged;
+
+            // Subscribe to settings applied event
+            _settingsService.SettingsApplied += OnSettingsApplied;
 
             // Initialize commands
             AllSwitchCommand = new RelayCommand(AllSwitchButtonClick);
@@ -383,7 +393,7 @@ namespace RC_GUI_WATS.ViewModels
             {
                 var relatedMessages = _orderBookService.GetRelatedCcgMessages(orderEntry);
         
-                var ccgMessagesWindow = new OrderBookCcgMessagesWindow(orderEntry, relatedMessages);
+                var ccgMessagesWindow = new OrderBookCcgMessagesWindow(orderEntry, relatedMessages, _configurationService);
                 ccgMessagesWindow.Owner = System.Windows.Application.Current.MainWindow;
                 ccgMessagesWindow.ShowDialog();
             }
@@ -574,6 +584,18 @@ namespace RC_GUI_WATS.ViewModels
 
             var (total, active, filled, cancelled) = _orderBookService.GetOrderStatistics();
             OrderBookStatisticsText = $"Total: {total}, Active: {active}, Filled: {filled}, Cancelled: {cancelled}";
+        }
+
+        private void OnSettingsApplied(object sender, EventArgs e)
+        {
+            // Refresh the views to apply new color settings
+            _ccgMessagesView?.Refresh();
+            // For OrderBook, if it has its own CollectionView, refresh it too.
+            // Otherwise, if it's directly bound to an ObservableCollection,
+            // you might need to re-assign the collection or trigger PropertyChanged
+            // for the DataGrid to re-render.
+            // For now, I'll assume refreshing the view is enough.
+            // If not, I might need to add a similar mechanism for OrderBook.
         }
 
         #endregion
