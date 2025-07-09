@@ -3,7 +3,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d">
+             mc:Ignorable="d"
+             Background="{DynamicResource PrimaryBackgroundColor}"
+             Foreground="{DynamicResource PrimaryForegroundColor}">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
     </UserControl.Resources>
@@ -16,12 +18,12 @@
         </Grid.RowDefinitions>
         
         <!-- File selection and control panel -->
-        <Border Grid.Row="0" Background="#F0F8FF" BorderBrush="LightGray" BorderThickness="1" Margin="5">
+        <Border Grid.Row="0" Background="{DynamicResource SecondaryBackgroundColor}" BorderBrush="{DynamicResource PrimaryBorderColor}" BorderThickness="1" Margin="5">
             <StackPanel Orientation="Horizontal" Margin="10,5">
                 <Button Content="Source file" Command="{Binding SelectInstrumentsFileCommand}"
                         Padding="10,3" Margin="0,0,10,0" FontWeight="SemiBold"/>
                 <TextBlock Text="{Binding InstrumentsFilePath}" VerticalAlignment="Center" 
-                          FontFamily="Consolas" Foreground="DarkBlue" Margin="0,0,15,0"/>
+                          FontFamily="Consolas" Foreground="{DynamicResource InstrumentsFilePathForeground}" Margin="0,0,15,0"/>
                 <Button Content="Refresh" Command="{Binding RefreshCommand}"
                         Padding="8,3" Margin="0,0,10,0"/>
                         
@@ -29,7 +31,7 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" 
                            Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <ProgressBar Width="100" Height="16" IsIndeterminate="True" Margin="0,0,10,0"/>
-                    <TextBlock Text="Loading..." FontStyle="Italic" Foreground="Gray"/>
+                    <TextBlock Text="Loading..." FontStyle="Italic" Foreground="{DynamicResource LoadingTextForeground}"/>
                 </StackPanel>
             </StackPanel>
         </Border>
@@ -37,7 +39,7 @@
         <!-- Instruments DataGrid -->
         <DataGrid Grid.Row="1" ItemsSource="{Binding Instruments}" AutoGenerateColumns="False" 
                   CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True" 
-                  Margin="5" AlternatingRowBackground="#F9F9F9" 
+                  Margin="5" AlternatingRowBackground="{DynamicResource DataGridAlternatingRowBackground}" 
                   GridLinesVisibility="Horizontal" RowHeight="22"
                   ScrollViewer.CanContentScroll="True" 
                   ScrollViewer.VerticalScrollBarVisibility="Auto"
@@ -54,7 +56,7 @@
                         <Style TargetType="TextBlock">
                             <Setter Property="HorizontalAlignment" Value="Right"/>
                             <Setter Property="FontSize" Value="10"/>
-                            <Setter Property="Foreground" Value="Gray"/>
+                            <Setter Property="Foreground" Value="{DynamicResource RowNumberForeground}"/>
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
@@ -65,6 +67,7 @@
                         <Style TargetType="TextBlock">
                             <Setter Property="FontFamily" Value="Consolas"/>
                             <Setter Property="HorizontalAlignment" Value="Right"/>
+                            <Setter Property="Foreground" Value="{DynamicResource PrimaryForegroundColor}"/>
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
@@ -74,6 +77,7 @@
                         <Style TargetType="TextBlock">
                             <Setter Property="FontFamily" Value="Consolas"/>
                             <Setter Property="FontWeight" Value="Bold"/>
+                            <Setter Property="Foreground" Value="{DynamicResource PrimaryForegroundColor}"/>
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
@@ -82,36 +86,50 @@
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="FontFamily" Value="Consolas"/>
+                            <Setter Property="Foreground" Value="{DynamicResource PrimaryForegroundColor}"/>
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
                 
                 <!-- Main descriptive columns -->
-                <DataGridTextColumn Header="Product Name" Binding="{Binding ProductName}" Width="200"/>
+                <DataGridTextColumn Header="Product Name" Binding="{Binding ProductName}" Width="200">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{DynamicResource PrimaryForegroundColor}"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
                 
                 <DataGridTextColumn Header="Instrument Type" Binding="{Binding InstrumentType}" Width="120">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
-                            <Setter Property="FontWeight" Value="SemiBold"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                            <Setter Property="Foreground" Value="{DynamicResource PrimaryForegroundColor}"/>
                             <Style.Triggers>
                                 <Trigger Property="Text" Value="Equity">
-                                    <Setter Property="Foreground" Value="DarkGreen"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource InstrumentTypeEquityForeground}"/>
                                 </Trigger>
                                 <Trigger Property="Text" Value="Bond">
-                                    <Setter Property="Foreground" Value="DarkBlue"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource InstrumentTypeBondForeground}"/>
                                 </Trigger>
                                 <Trigger Property="Text" Value="Future">
-                                    <Setter Property="Foreground" Value="DarkRed"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource InstrumentTypeFutureForeground}"/>
                                 </Trigger>
                                 <Trigger Property="Text" Value="Option">
-                                    <Setter Property="Foreground" Value="Purple"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource InstrumentTypeOptionForeground}"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
                 
-                <DataGridTextColumn Header="Subtype" Binding="{Binding InstrumentSubtype}" Width="120"/>
+                <DataGridTextColumn Header="Subtype" Binding="{Binding InstrumentSubtype}" Width="120">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{DynamicResource PrimaryForegroundColor}"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
                 
                 <!-- Market information -->
                 <DataGridTextColumn Header="Currency" Binding="{Binding Currency}" Width="70">
@@ -119,6 +137,7 @@
                         <Style TargetType="TextBlock">
                             <Setter Property="HorizontalAlignment" Value="Center"/>
                             <Setter Property="FontWeight" Value="Bold"/>
+                            <Setter Property="Foreground" Value="{DynamicResource PrimaryForegroundColor}"/>
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
@@ -128,6 +147,7 @@
                         <Style TargetType="TextBlock">
                             <Setter Property="HorizontalAlignment" Value="Center"/>
                             <Setter Property="FontFamily" Value="Consolas"/>
+                            <Setter Property="Foreground" Value="{DynamicResource PrimaryForegroundColor}"/>
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
@@ -138,6 +158,7 @@
                         <Style TargetType="TextBlock">
                             <Setter Property="HorizontalAlignment" Value="Right"/>
                             <Setter Property="FontFamily" Value="Consolas"/>
+                            <Setter Property="Foreground" Value="{DynamicResource PrimaryForegroundColor}"/>
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
@@ -147,6 +168,7 @@
                         <Style TargetType="TextBlock">
                             <Setter Property="HorizontalAlignment" Value="Right"/>
                             <Setter Property="FontFamily" Value="Consolas"/>
+                            <Setter Property="Foreground" Value="{DynamicResource PrimaryForegroundColor}"/>
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
@@ -156,13 +178,30 @@
                         <Style TargetType="TextBlock">
                             <Setter Property="HorizontalAlignment" Value="Right"/>
                             <Setter Property="FontFamily" Value="Consolas"/>
+                            <Setter Property="Foreground" Value="{DynamicResource PrimaryForegroundColor}"/>
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
                 
                 <!-- Market structure -->
-                <DataGridTextColumn Header="Market Structure" Binding="{Binding MarketStructureName}" Width="140"/>
-                <DataGridTextColumn Header="Market Model" Binding="{Binding MarketModelType}" Width="120"/>
+                <DataGridTextColumn Header="Market Structure" Binding="{Binding MarketStructureName}" Width="140">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{DynamicResource PrimaryForegroundColor}"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                    
+                
+                <DataGridTextColumn Header="Market Model" Binding="{Binding MarketModelType}" Width="120">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{DynamicResource PrimaryForegroundColor}"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                    
+                
                 
                 <!-- Status and additional info -->
                 <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="60">
@@ -171,11 +210,11 @@
                             <Setter Property="HorizontalAlignment" Value="Center"/>
                             <Style.Triggers>
                                 <Trigger Property="Text" Value="1">
-                                    <Setter Property="Foreground" Value="Green"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource PrimaryForegroundColor}"/>
                                     <Setter Property="FontWeight" Value="Bold"/>
                                 </Trigger>
                                 <Trigger Property="Text" Value="0">
-                                    <Setter Property="Foreground" Value="Red"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource PrimaryForegroundColor}"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
@@ -187,6 +226,7 @@
                         <Style TargetType="TextBlock">
                             <Setter Property="FontFamily" Value="Consolas"/>
                             <Setter Property="HorizontalAlignment" Value="Center"/>
+                            <Setter Property="Foreground" Value="{DynamicResource PrimaryForegroundColor}"/>
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
@@ -195,6 +235,7 @@
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="HorizontalAlignment" Value="Center"/>
+                            <Setter Property="Foreground" Value="{DynamicResource PrimaryForegroundColor}"/>
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
@@ -208,6 +249,7 @@
                         <Style TargetType="TextBlock">
                             <Setter Property="HorizontalAlignment" Value="Right"/>
                             <Setter Property="FontFamily" Value="Consolas"/>
+                            <Setter Property="Foreground" Value="{DynamicResource PrimaryForegroundColor}"/>
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
@@ -218,6 +260,7 @@
                         <Style TargetType="TextBlock">
                             <Setter Property="FontFamily" Value="Consolas"/>
                             <Setter Property="FontSize" Value="10"/>
+                            <Setter Property="Foreground" Value="{DynamicResource PrimaryForegroundColor}"/>
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
@@ -227,6 +270,7 @@
                         <Style TargetType="TextBlock">
                             <Setter Property="FontFamily" Value="Consolas"/>
                             <Setter Property="FontSize" Value="10"/>
+                            <Setter Property="Foreground" Value="{DynamicResource PrimaryForegroundColor}"/>
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
@@ -236,30 +280,31 @@
             <DataGrid.RowStyle>
                 <Style TargetType="DataGridRow">
                     <Setter Property="Height" Value="22"/>
+                    <Setter Property="Background" Value="{DynamicResource DataGridRowBackground}"/>
                     <Style.Triggers>
                         <!-- Highlight rows based on instrument status -->
                         <DataTrigger Binding="{Binding Status}" Value="0">
-                            <Setter Property="Background" Value="#FFE4E1"/>
-                            <Setter Property="Foreground" Value="DarkRed"/>
+                            <Setter Property="Background" Value="{DynamicResource InstrumentStatusZeroBackground}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource InstrumentStatusZeroForeground}"/>
                         </DataTrigger>
                         
                         <!-- Different background for different instrument types -->
                         <DataTrigger Binding="{Binding InstrumentType}" Value="Equity">
-                            <Setter Property="Background" Value="#F0FFF0"/>
+                            <Setter Property="Background" Value="{DynamicResource InstrumentEquityBackground}"/>
                         </DataTrigger>
                         <DataTrigger Binding="{Binding InstrumentType}" Value="Bond">
-                            <Setter Property="Background" Value="#F0F8FF"/>
+                            <Setter Property="Background" Value="{DynamicResource InstrumentBondBackground}"/>
                         </DataTrigger>
                         <DataTrigger Binding="{Binding InstrumentType}" Value="Future">
-                            <Setter Property="Background" Value="#FFF8DC"/>
+                            <Setter Property="Background" Value="{DynamicResource InstrumentFutureBackground}"/>
                         </DataTrigger>
                         <DataTrigger Binding="{Binding InstrumentType}" Value="Option">
-                            <Setter Property="Background" Value="#F5F0FF"/>
+                            <Setter Property="Background" Value="{DynamicResource InstrumentOptionBackground}"/>
                         </DataTrigger>
                         
                         <!-- Mouse over effect -->
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="#E6F3FF"/>
+                            <Setter Property="Background" Value="{DynamicResource DataGridRowMouseOverBackground}"/>
                         </Trigger>
                     </Style.Triggers>
                 </Style>
@@ -267,9 +312,9 @@
         </DataGrid>
         
         <!-- Status bar -->
-        <Border Grid.Row="2" Background="LightGray" BorderBrush="Gray" BorderThickness="0,1,0,0">
+        <Border Grid.Row="2" Background="{DynamicResource StatusBarBackground}" BorderBrush="{DynamicResource PrimaryBorderColor}" BorderThickness="0,1,0,0">
             <StackPanel Orientation="Horizontal" Margin="5,2">
-                <TextBlock Text="Status: " FontWeight="Bold"/>
+                <TextBlock Text="Status: " FontWeight="Bold" Foreground="{DynamicResource PrimaryForegroundColor}"/>
                 <TextBlock Text="{Binding StatusText}"/>
             </StackPanel>
         </Border>

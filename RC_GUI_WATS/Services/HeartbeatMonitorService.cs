@@ -17,6 +17,8 @@ namespace RC_GUI_WATS.Services
     public class HeartbeatMonitorService
     {
         private readonly RcTcpClientService _clientService;
+        private readonly ThemeService _themeService;
+        private readonly SettingsService _settingsService;
         private Timer _heartbeatTimer;
         private DateTime _lastHeartbeatReceived;
         private int _missedHeartbeats;
@@ -63,13 +65,30 @@ namespace RC_GUI_WATS.Services
             }
         }
 
-        public HeartbeatMonitorService(RcTcpClientService clientService)
+        public HeartbeatMonitorService(RcTcpClientService clientService, ThemeService themeService, SettingsService settingsService)
         {
             _clientService = clientService;
+            _themeService = themeService;
+            _settingsService = settingsService;
+
             _clientService.MessageReceived += OnMessageReceived;
             _clientService.ConnectionStatusChanged += OnConnectionStatusChanged;
+            this.HeartbeatStatusChanged += OnHeartbeatStatusChanged; // Subscribe to its own event
+
             _currentStatus = HeartbeatStatus.Disconnected;
             _missedHeartbeats = 0;
+        }
+
+        private void OnHeartbeatStatusChanged(HeartbeatStatus status)
+        {
+            if (status == HeartbeatStatus.Disconnected)
+            {
+                _themeService.ApplyTheme("Red");
+            }
+            else
+            {
+                _themeService.ApplyTheme(_settingsService.ThemeName);
+            }
         }
 
         private void OnConnectionStatusChanged(bool isConnected)

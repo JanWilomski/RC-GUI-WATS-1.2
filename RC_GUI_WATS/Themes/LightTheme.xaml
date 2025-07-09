@@ -2,4 +2,28 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <SolidColorBrush x:Key="PrimaryBackgroundColor" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="PrimaryForegroundColor" Color="#000000"/>
+    <SolidColorBrush x:Key="PrimaryBorderColor" Color="#B0B0B0"/>
+    <SolidColorBrush x:Key="SecondaryBorderColor" Color="#A0A0A0"/>
+    <SolidColorBrush x:Key="ComboBoxBackground" Color="#F0F0F0"/>
+    <SolidColorBrush x:Key="ComboBoxPopupBackground" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="DataGridRowBackground" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="DataGridRowMouseOverBackground" Color="#F0F0F0"/>
+    <SolidColorBrush x:Key="GridSplitterBackground" Color="#D0D0D0"/>
+    <SolidColorBrush x:Key="SecondaryBackgroundColor" Color="#F0F0F0"/>
+    <SolidColorBrush x:Key="DataGridAlternatingRowBackground" Color="#F9F9F9"/>
+    <SolidColorBrush x:Key="InstrumentStatusZeroBackground" Color="#FFE4E1"/>
+    <SolidColorBrush x:Key="InstrumentEquityBackground" Color="#F0FFF0"/>
+    <SolidColorBrush x:Key="InstrumentBondBackground" Color="#F0F8FF"/>
+    <SolidColorBrush x:Key="InstrumentFutureBackground" Color="#FFF8DC"/>
+    <SolidColorBrush x:Key="InstrumentOptionBackground" Color="#F5F0FF"/>
+    <SolidColorBrush x:Key="StatusBarBackground" Color="LightGray"/>
+    <SolidColorBrush x:Key="InstrumentsFilePathForeground" Color="DarkBlue"/>
+    <SolidColorBrush x:Key="LoadingTextForeground" Color="Gray"/>
+    <SolidColorBrush x:Key="RowNumberForeground" Color="Gray"/>
+    <SolidColorBrush x:Key="InstrumentTypeEquityForeground" Color="DarkGreen"/>
+    <SolidColorBrush x:Key="InstrumentTypeBondForeground" Color="DarkBlue"/>
+    <SolidColorBrush x:Key="InstrumentTypeFutureForeground" Color="DarkRed"/>
+    <SolidColorBrush x:Key="InstrumentTypeOptionForeground" Color="Purple"/>
+    <SolidColorBrush x:Key="InstrumentStatusOneForeground" Color="Green"/>
+    <SolidColorBrush x:Key="InstrumentStatusZeroForeground" Color="Red"/>
 </ResourceDictionary>

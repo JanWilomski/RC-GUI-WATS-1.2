@@ -31,8 +31,6 @@ namespace RC_GUI_WATS
             // Create OrderBookService - depends on CcgMessagesService and InstrumentsService
             var orderBookService = new OrderBookService(ccgMessagesService, instrumentsService);
 
-            // Create heartbeat monitor service
-            var heartbeatMonitorService = new HeartbeatMonitorService(clientService);
             var settingsService = new Services.SettingsService(configService); // Create SettingsService
 
             var themeService = new ThemeService();
@@ -43,11 +41,14 @@ namespace RC_GUI_WATS
             }
             themeService.ApplyTheme(themeName);
 
+            // Create heartbeat monitor service
+            var heartbeatMonitorService = new HeartbeatMonitorService(clientService, themeService, settingsService);
+
             // Log application startup
             fileLoggingService.LogSettings("Application startup", "Initializing RC GUI WATS");
 
             // Set up the main window with view model
-            var mainWindow = new MainWindow();
+            var mainWindow = new MainWindow(settingsService);
             var mainViewModel = new MainWindowViewModel(
                 clientService,
                 positionsService,

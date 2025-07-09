@@ -5,7 +5,9 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:views="clr-namespace:RC_GUI_WATS.Views"
-             mc:Ignorable="d">
+             mc:Ignorable="d"
+             Background="{DynamicResource PrimaryBackgroundColor}"
+             Foreground="{DynamicResource PrimaryForegroundColor}">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         
@@ -16,8 +18,8 @@
                     <ControlTemplate TargetType="ComboBox">
                         <Grid>
                             <ToggleButton Name="ToggleButton" 
-                                        Background="White" 
-                                        BorderBrush="Gray" 
+                                        Background="{DynamicResource ComboBoxBackground}" 
+                                        BorderBrush="{DynamicResource SecondaryBorderColor}" 
                                         BorderThickness="1"
                                         IsChecked="{Binding Path=IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
                                         ClickMode="Press">
@@ -38,7 +40,7 @@
                                    Focusable="False"
                                    PopupAnimation="Slide">
                                 <Grid MinWidth="{TemplateBinding ActualWidth}" MaxHeight="300">
-                                    <Border Background="White" BorderBrush="Gray" BorderThickness="1">
+                                    <Border Background="{DynamicResource ComboBoxPopupBackground}" BorderBrush="{DynamicResource SecondaryBorderColor}" BorderThickness="1">
                                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                                             <StackPanel Margin="5">
                                                 <!-- Quick action buttons -->
@@ -121,7 +123,7 @@
             </Grid.ColumnDefinitions>
             
             <!-- Left side - capital information -->
-            <Border BorderBrush="DarkGray" BorderThickness="1" Grid.Column="0">
+            <Border BorderBrush="{DynamicResource PrimaryBorderColor}" BorderThickness="1" Grid.Column="0">
                 <Grid Margin="5">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -181,7 +183,7 @@
             </Border>
             
             <!-- CCG Statistics -->
-            <Border BorderBrush="DarkGray" BorderThickness="1" Grid.Column="1" Margin="5,0,0,0">
+            <Border BorderBrush="{DynamicResource PrimaryBorderColor}" BorderThickness="1" Grid.Column="1" Margin="5,0,0,0">
                 <StackPanel Margin="5">
                     <TextBlock Text="CCG Messages" FontWeight="Bold" Margin="0,0,0,5"/>
                     <TextBlock Text="{Binding CcgMessageCountText}" FontSize="11"/>
@@ -250,7 +252,7 @@
         
         <!-- Splitter -->
         <GridSplitter Grid.Row="2" Height="5" HorizontalAlignment="Stretch" 
-                      Background="LightGray" ResizeDirection="Rows"/>
+                      Background="{DynamicResource GridSplitterBackground}" ResizeDirection="Rows"/>
         
         <!-- CCG Messages and Order Book Section -->
         <Grid Grid.Row="3" Margin="5">
@@ -349,12 +351,12 @@
                 <DataGrid.RowStyle>
                     <Style TargetType="DataGridRow">
                         <!-- Default background for alternating rows -->
-                        <Setter Property="Background" Value="White"/>
+                        <Setter Property="Background" Value="{DynamicResource DataGridRowBackground}"/>
                         <Setter Property="ToolTip" Value="{Binding RawDataHex}"/>
                         <Style.Triggers>
                             <!-- Mouse over effect -->
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#F0F0F0"/>
+                                <Setter Property="Background" Value="{DynamicResource DataGridRowMouseOverBackground}"/>
                             </Trigger>
                             
                             <!-- Error messages - highest priority -->
@@ -629,7 +631,7 @@
                     <!-- Row styling -->
                     <DataGrid.RowStyle>
                         <Style TargetType="DataGridRow">
-                            <Setter Property="Background" Value="White"/>
+                            <Setter Property="Background" Value="{DynamicResource DataGridRowBackground}"/>
                             <Style.Triggers>
                                 <!-- Active orders - light blue -->
                                 <DataTrigger Binding="{Binding Status}" Value="New">
@@ -659,7 +661,7 @@
                                 
                                 <!-- Mouse over -->
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#D0D0D0"/>
+                                    <Setter Property="Background" Value="{DynamicResource DataGridRowMouseOverBackground}"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
