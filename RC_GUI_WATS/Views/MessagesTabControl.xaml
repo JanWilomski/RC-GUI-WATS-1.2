@@ -19,6 +19,7 @@
                         <Grid>
                             <ToggleButton Name="ToggleButton" 
                                         Background="{DynamicResource ComboBoxBackground}" 
+                                        Foreground="{DynamicResource PrimaryForegroundColor}"
                                         BorderBrush="{DynamicResource SecondaryBorderColor}" 
                                         BorderThickness="1"
                                         IsChecked="{Binding Path=IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
@@ -28,7 +29,7 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="20"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="Message Types" Margin="5,2" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="0" Text="Message Types" Margin="5,2" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryForegroundColor}"/>
                                     <Path Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" 
                                           Data="M 0 0 L 4 4 L 8 0 Z" Fill="Gray"/>
                                 </Grid>
@@ -40,9 +41,9 @@
                                    Focusable="False"
                                    PopupAnimation="Slide">
                                 <Grid MinWidth="{TemplateBinding ActualWidth}" MaxHeight="300">
-                                    <Border Background="{DynamicResource ComboBoxPopupBackground}" BorderBrush="{DynamicResource SecondaryBorderColor}" BorderThickness="1">
+                                    <Border Background="{DynamicResource ComboBoxPopupBackground}" BorderBrush="{DynamicResource SecondaryBorderColor}" BorderThickness="1" >
                                         <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                            <StackPanel Margin="5">
+                                            <StackPanel Margin="5" >
                                                 <!-- Quick action buttons -->
                                                 <Grid Margin="0,0,0,5">
                                                     <Grid.ColumnDefinitions>
@@ -63,35 +64,35 @@
                                                 <Separator Margin="0,0,0,5"/>
                                                 
                                                 <!-- Order Messages -->
-                                                <TextBlock Text="Order Messages" FontWeight="Bold" FontSize="11" Margin="0,5,0,2"/>
-                                                <CheckBox Content="OrderAdd" IsChecked="{Binding ShowOrderAdd}" Margin="10,1"/>
-                                                <CheckBox Content="OrderAddResponse" IsChecked="{Binding ShowOrderAddResponse}" Margin="10,1"/>
-                                                <CheckBox Content="OrderModify" IsChecked="{Binding ShowOrderModify}" Margin="10,1"/>
-                                                <CheckBox Content="OrderModifyResponse" IsChecked="{Binding ShowOrderModifyResponse}" Margin="10,1"/>
-                                                <CheckBox Content="OrderCancel" IsChecked="{Binding ShowOrderCancel}" Margin="10,1"/>
-                                                <CheckBox Content="OrderCancelResponse" IsChecked="{Binding ShowOrderCancelResponse}" Margin="10,1"/>
+                                                <TextBlock Text="Order Messages" FontWeight="Bold" FontSize="11" Margin="0,5,0,2" />
+                                                <CheckBox Content="OrderAdd" IsChecked="{Binding ShowOrderAdd}" Margin="10,1" Foreground="{DynamicResource PrimaryForegroundColor}"/>
+                                                <CheckBox Content="OrderAddResponse" IsChecked="{Binding ShowOrderAddResponse}" Margin="10,1" Foreground="{DynamicResource PrimaryForegroundColor}"/>
+                                                <CheckBox Content="OrderModify" IsChecked="{Binding ShowOrderModify}" Margin="10,1" Foreground="{DynamicResource PrimaryForegroundColor}"/>
+                                                <CheckBox Content="OrderModifyResponse" IsChecked="{Binding ShowOrderModifyResponse}" Margin="10,1" Foreground="{DynamicResource PrimaryForegroundColor}"/>
+                                                <CheckBox Content="OrderCancel" IsChecked="{Binding ShowOrderCancel}" Margin="10,1" Foreground="{DynamicResource PrimaryForegroundColor}"/>
+                                                <CheckBox Content="OrderCancelResponse" IsChecked="{Binding ShowOrderCancelResponse}" Margin="10,1" Foreground="{DynamicResource PrimaryForegroundColor}"/>
                                                 
                                                 <!-- Trade Messages -->
                                                 <TextBlock Text="Trade Messages" FontWeight="Bold" FontSize="11" Margin="0,5,0,2"/>
-                                                <CheckBox Content="Trade" IsChecked="{Binding ShowTrade}" Margin="10,1"/>
-                                                <CheckBox Content="Trade Capture Reports" IsChecked="{Binding ShowTradeCaptureReports}" Margin="10,1"/>
+                                                <CheckBox Content="Trade" IsChecked="{Binding ShowTrade}" Margin="10,1" Foreground="{DynamicResource PrimaryForegroundColor}"/>
+                                                <CheckBox Content="Trade Capture Reports" IsChecked="{Binding ShowTradeCaptureReports}" Margin="10,1" Foreground="{DynamicResource PrimaryForegroundColor}"/>
                                                 
                                                 <!-- Quote Messages -->
                                                 <TextBlock Text="Quote Messages" FontWeight="Bold" FontSize="11" Margin="0,5,0,2"/>
-                                                <CheckBox Content="MassQuote" IsChecked="{Binding ShowMassQuote}" Margin="10,1"/>
-                                                <CheckBox Content="MassQuoteResponse" IsChecked="{Binding ShowMassQuoteResponse}" Margin="10,1"/>
+                                                <CheckBox Content="MassQuote" IsChecked="{Binding ShowMassQuote}" Margin="10,1" Foreground="{DynamicResource PrimaryForegroundColor}"/>
+                                                <CheckBox Content="MassQuoteResponse" IsChecked="{Binding ShowMassQuoteResponse}" Margin="10,1" Foreground="{DynamicResource PrimaryForegroundColor}"/>
                                                 
                                                 <!-- Mass Cancel Messages -->
                                                 <TextBlock Text="Mass Cancel Messages" FontWeight="Bold" FontSize="11" Margin="0,5,0,2"/>
-                                                <CheckBox Content="OrderMassCancel" IsChecked="{Binding ShowOrderMassCancel}" Margin="10,1"/>
-                                                <CheckBox Content="OrderMassCancelResponse" IsChecked="{Binding ShowOrderMassCancelResponse}" Margin="10,1"/>
+                                                <CheckBox Content="OrderMassCancel" IsChecked="{Binding ShowOrderMassCancel}" Margin="10,1" Foreground="{DynamicResource PrimaryForegroundColor}"/>
+                                                <CheckBox Content="OrderMassCancelResponse" IsChecked="{Binding ShowOrderMassCancelResponse}" Margin="10,1" Foreground="{DynamicResource PrimaryForegroundColor}"/>
                                                 
                                                 <!-- System Messages -->
                                                 <TextBlock Text="System Messages" FontWeight="Bold" FontSize="11" Margin="0,5,0,2"/>
-                                                <CheckBox Content="Reject" IsChecked="{Binding ShowReject}" Margin="10,1"/>
-                                                <CheckBox Content="Login/Logout" IsChecked="{Binding ShowLoginLogout}" Margin="10,1"/>
-                                                <CheckBox Content="Heartbeat" IsChecked="{Binding ShowHeartbeat}" Margin="10,1"/>
-                                                <CheckBox Content="Others" IsChecked="{Binding ShowOthers}" Margin="10,1"/>
+                                                <CheckBox Content="Reject" IsChecked="{Binding ShowReject}" Margin="10,1" Foreground="{DynamicResource PrimaryForegroundColor}"/>
+                                                <CheckBox Content="Login/Logout" IsChecked="{Binding ShowLoginLogout}" Margin="10,1" Foreground="{DynamicResource PrimaryForegroundColor}"/>
+                                                <!-- <CheckBox Content="Heartbeat" IsChecked="{Binding ShowHeartbeat}" Margin="10,1"/> -->
+                                                <CheckBox Content="Others" IsChecked="{Binding ShowOthers}" Margin="10,1" Foreground="{DynamicResource PrimaryForegroundColor}"/>
                                             </StackPanel>
                                         </ScrollViewer>
                                     </Border>
@@ -208,7 +209,8 @@
         <DataGrid Grid.Row="1" AutoGenerateColumns="False" 
                   ItemsSource="{Binding Positions}"
                   CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True" 
-                  Margin="5" LoadingRow="PositionsDataGrid_LoadingRow">
+                  Margin="5" LoadingRow="PositionsDataGrid_LoadingRow"
+                  Background="{DynamicResource SecondaryBackgroundColor}">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="#" Width="30">
                     <DataGridTextColumn.Binding>
@@ -255,7 +257,7 @@
                       Background="{DynamicResource GridSplitterBackground}" ResizeDirection="Rows"/>
         
         <!-- CCG Messages and Order Book Section -->
-        <Grid Grid.Row="3" Margin="5">
+        <Grid Grid.Row="3" Margin="5" Background="{DynamicResource SecondaryBackgroundColor}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="200"/>
@@ -267,13 +269,13 @@
             <Grid Grid.Row="0" Margin="0,0,0,5">
                 <!-- Header row - Title and controls -->
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
-                    <TextBlock Text="CCG Messages" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                    <TextBlock Text="CCG Messages" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,15,0" Foreground="{DynamicResource PrimaryForegroundColor}"/>
                     
                     <!-- Message Type Filter ComboBox -->
                     <ComboBox Width="120" Height="25" Style="{StaticResource MessageTypeFilterComboBoxStyle}"
-                              VerticalAlignment="Center" Margin="0,0,10,0"/>
+                              VerticalAlignment="Center" Margin="0,0,10,0" Foreground="{DynamicResource PrimaryForegroundColor}"/>
                     
-                    <CheckBox x:Name="ShowRawDataCheckBox" Content="Show Raw" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                    <CheckBox x:Name="ShowRawDataCheckBox" Content="Show Raw" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="{DynamicResource PrimaryForegroundColor}"/>
                 </StackPanel>
             </Grid>
             
@@ -284,7 +286,8 @@
                       GridLinesVisibility="All"
                       FontSize="10" RowHeight="20"
                       MouseDoubleClick="CcgDataGrid_MouseDoubleClick"
-                      LoadingRow="CcgDataGrid_LoadingRow">
+                      LoadingRow="CcgDataGrid_LoadingRow"
+                      Background="{DynamicResource SecondaryBackgroundColor}">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Header" Binding="{Binding Header}" Width="50">
                         <DataGridTextColumn.ElementStyle>
@@ -480,7 +483,8 @@
                           CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True"
                           GridLinesVisibility="All" FontSize="10" RowHeight="20"
                           LoadingRow="OrderBookDataGrid_LoadingRow"
-                          MouseDoubleClick="OrderBookDataGrid_MouseDoubleClick">
+                          MouseDoubleClick="OrderBookDataGrid_MouseDoubleClick"
+                          Background="{DynamicResource SecondaryBackgroundColor}">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="#" Width="30">
                             <DataGridTextColumn.Binding>

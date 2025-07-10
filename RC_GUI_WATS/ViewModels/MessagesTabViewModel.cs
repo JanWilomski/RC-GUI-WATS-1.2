@@ -621,7 +621,8 @@ namespace RC_GUI_WATS.ViewModels
         {
             if (_clientService.IsConnected)
             {
-                await _clientService.SendSetControlAsync("(ALL),halt,Y");
+                //await _clientService.SendSetControlAsync("(ALL),halt,Y");
+                
             }
         }
     }
